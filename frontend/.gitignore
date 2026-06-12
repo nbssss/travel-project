@@ -1,0 +1,13 @@
+# Logs
+logs
+*.log
+
+# Dependencies & build output
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
