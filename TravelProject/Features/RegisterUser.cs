@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using System.Threading.Tasks;
 
 namespace TravelProject.Features
 {
@@ -7,7 +6,7 @@ namespace TravelProject.Features
     {
         public record RegisterUserRequest(string UserName, string Email, string Password);
 
-        public static async Task MapEndpoint(IEndpointRouteBuilder app)
+        public static void MapEndpoint(IEndpointRouteBuilder app)
         {
             app.MapPost("register", async (
                 RegisterUserRequest registerUserRequest, 
@@ -31,7 +30,7 @@ namespace TravelProject.Features
 
                 await transaction.CommitAsync();
 
-                return Results.Ok(user);
+                return Results.Ok(new { user.Id, user.Email });
             });
         }
     }
