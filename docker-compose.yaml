@@ -20,5 +20,18 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=postgres_db;Username=user;Password=password"
 
+  frontend:
+    container_name: travelroutes-frontend
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:8081
+    depends_on:
+      - api
+
 volumes:
   postgres_data:

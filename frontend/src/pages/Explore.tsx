@@ -13,8 +13,8 @@ const Explore = () => {
         </p>
 
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {[...mockRoutes, ...mockRoutes].map((r, i) => (
-            <RouteCard key={`${r.id}-${i}`} route={r} />
+          {mockRoutes.map((r) => (
+            <RouteCard key={r.id} route={r} />
           ))}
         </div>
       </div>
