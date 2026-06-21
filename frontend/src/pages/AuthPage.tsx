@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +10,8 @@ import { NewRouteButton } from "@/components/NewRouteButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { RouteMap } from "@/components/RouteMap";
 import { mockRoutes } from "@/data/mockRoutes";
+import { authApi, ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import type { FormEvent, ReactNode } from "react";
 
 type Props = {
@@ -16,12 +20,30 @@ type Props = {
 
 const AuthPage = ({ mode }: Props) => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const isLogin = mode === "login";
 
-  const handleSubmit = (e: FormEvent) => {
+  const [userName, setUserName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    // UI-only — backend będzie w .NET
-    navigate("/app");
+    setLoading(true);
+    try {
+      if (!isLogin) {
+        await authApi.register({ userName, email, password });
+      }
+      // logujemy po nazwie użytkownika (po rejestracji — tymi samymi danymi)
+      const { accessToken } = await authApi.login({ userName, password });
+      login(accessToken);
+      navigate("/app");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Coś poszło nie tak. Spróbuj ponownie.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -49,20 +71,35 @@ const AuthPage = ({ mode }: Props) => {
             </p>
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+              <Field label="Nazwa użytkownika">
+                <Input
+                  type="text"
+                  required
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                />
+              </Field>
               {!isLogin && (
-                <Field label="Nazwa użytkownika">
-                  <Input type="text" required placeholder="natalia" />
+                <Field label="Email">
+                  <Input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
                 </Field>
               )}
-              <Field label="Email">
-                <Input type="email" required placeholder="ty@example.com" />
-              </Field>
               <Field label="Hasło" hint={isLogin ? <Link to="#" className="text-xs text-muted-foreground hover:text-foreground">Zapomniałeś?</Link> : undefined}>
-                <Input type="password" required placeholder="••••••••" />
+                <Input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
               </Field>
 
-              <Button type="submit" variant="hero" size="lg" className="w-full">
-                {isLogin ? "Zaloguj" : "Załóż konto"}
+              <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>
+                {loading ? "Chwila…" : isLogin ? "Zaloguj" : "Załóż konto"}
               </Button>
 
               <div className="text-center text-xs text-muted-foreground">

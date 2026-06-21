@@ -8,7 +8,7 @@ namespace TravelProject.Features
 {
     public class LoginUser
     {
-        public record LoginUserRequest(string Email, string Password);
+        public record LoginUserRequest(string UserName, string Password);
         public static void MapEndpoint(IEndpointRouteBuilder app)
         {
             app.MapPost("login", async (
@@ -16,9 +16,7 @@ namespace TravelProject.Features
                 UserManager<ApplicationUser> userManager,
                 IConfiguration configuration ) =>
             {
-                // generate JWT token
-
-                var user = await userManager.FindByEmailAsync(loginUserRequest.Email);
+                var user = await userManager.FindByNameAsync(loginUserRequest.UserName);
 
                 if (user is null ||  !await userManager.CheckPasswordAsync(user, loginUserRequest.Password))
                 {
