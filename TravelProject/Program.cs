@@ -50,6 +50,11 @@ namespace TravelProject
 
             builder.Services.AddAuthorization();
 
+            var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+            builder.Services.AddCors(options =>
+                options.AddDefaultPolicy(policy =>
+                    policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -69,6 +74,8 @@ namespace TravelProject
             LoginUser.MapEndpoint(app);
 
             app.UseHttpsRedirection();
+
+            app.UseCors();
 
             app.UseAuthentication();
 
