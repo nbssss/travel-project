@@ -1,10 +1,42 @@
-function App() {
-  return (
-    <div className="min-h-screen p-8">
-      <h1 className="text-3xl font-bold">TravelRoutes</h1>
-      <p className="mt-2 text-gray-500">Hello from Tailwind!</p>
-    </div>
-  );
-}
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { ScrollToTop } from "@/components/ScrollToTop";
+import Index from "./pages/Index.tsx";
+import NotFound from "./pages/NotFound.tsx";
+import AuthPage from "./pages/AuthPage.tsx";
+import Dashboard from "./pages/Dashboard.tsx";
+import Explore from "./pages/Explore.tsx";
+import RouteDetail from "./pages/RouteDetail.tsx";
+import RouteEditor from "./pages/RouteEditor.tsx";
+import Profile from "./pages/Profile.tsx";
+
+const queryClient = new QueryClient();
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <ThemeProvider>
+      <TooltipProvider>
+        <Sonner />
+        <BrowserRouter>
+          <ScrollToTop />
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<AuthPage mode="login" />} />
+            <Route path="/register" element={<AuthPage mode="register" />} />
+            <Route path="/app" element={<Dashboard />} />
+            <Route path="/app/explore" element={<Explore />} />
+            <Route path="/app/profile" element={<Profile />} />
+            <Route path="/app/route/:slug" element={<RouteDetail />} />
+            <Route path="/app/route/:slug/edit" element={<RouteEditor />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
+  </QueryClientProvider>
+);
 
 export default App;
