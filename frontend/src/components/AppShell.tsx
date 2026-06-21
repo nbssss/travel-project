@@ -3,6 +3,7 @@ import { LogOut } from "lucide-react";
 import { Logo } from "./Logo";
 import { NewRouteButton } from "./NewRouteButton";
 import { ThemeToggle } from "./ThemeToggle";
+import { useAuth } from "@/lib/auth";
 import type { ReactNode } from "react";
 
 const nav = [
@@ -12,6 +13,13 @@ const nav = [
 
 export function AppShell({ children }: { children: ReactNode }) {
     const navigate = useNavigate();
+    const { logout } = useAuth();
+
+    const handleLogout = () => {
+        logout();
+        navigate("/");
+    };
+
     return (
         <div className="flex min-h-screen flex-col bg-background">
             <header
@@ -50,7 +58,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                             NB
                         </button>
                         <button
-                            onClick={() => navigate("/")}
+                            onClick={handleLogout}
                             className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
                         >
                             <LogOut className="h-3.5 w-3.5" />
