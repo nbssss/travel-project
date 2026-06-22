@@ -74,6 +74,11 @@ namespace TravelProject
 
             RegisterUser.MapEndpoint(app);
             LoginUser.MapEndpoint(app);
+            CreateRoute.MapEndpoint(app);
+            UpsertRoutePoints.MapEndpoint(app);
+            GetMyRoutes.MapEndpoint(app);
+            GetRecentRoutes.MapEndpoint(app);
+            GetRouteBySlug.MapEndpoint(app);
 
             app.UseHttpsRedirection();
             app.UseCors();

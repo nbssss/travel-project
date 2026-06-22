@@ -1,18 +1,25 @@
-﻿import { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import L from "leaflet";
-import { poiKindLabel, type Route } from "@/data/mockRoutes";
+import { poiKindLabel, type POI } from "@/data/mockRoutes";
+
+type MapRoute = {
+    path?: [number, number][];
+    pois?: Pick<POI, "kind" | "coords" | "name" | "elevation" | "note">[];
+};
 
 type Props = {
-    route: Route;
+    route: MapRoute;
     height?: string;
     interactive?: boolean;
     onMapClick?: (latlng: [number, number]) => void;
     className?: string;
     /** Show the +/- zoom buttons. Defaults to `interactive`. */
     zoomControl?: boolean;
+    /** When set, the map flies to these coordinates at zoom 13. */
+    flyTo?: [number, number];
 };
 
-export function RouteMap({ route, height = "100%", interactive = true, onMapClick, className, zoomControl }: Props) {
+export function RouteMap({ route, height = "100%", interactive = true, onMapClick, className, zoomControl, flyTo }: Props) {
     const ref = useRef<HTMLDivElement>(null);
     const mapRef = useRef<L.Map | null>(null);
 
@@ -49,15 +56,17 @@ export function RouteMap({ route, height = "100%", interactive = true, onMapClic
         const layers: L.Layer[] = [];
         const primary = getComputedStyle(document.documentElement).getPropertyValue("--primary").trim();
         const accentColor = `hsl(${primary})`;
+        const path = route.path ?? [];
+        const pois = route.pois ?? [];
 
-        if (route.path.length > 1) {
+        if (path.length > 1) {
             // White casing under a colored track — the classic walking-route look.
-            const casing = L.polyline(route.path, { color: "#ffffff", weight: 8, opacity: 0.7, lineCap: "round", lineJoin: "round" }).addTo(map);
-            const line = L.polyline(route.path, { color: accentColor, weight: 4, opacity: 0.95, lineCap: "round", lineJoin: "round", smoothFactor: 1 }).addTo(map);
+            const casing = L.polyline(path, { color: "#ffffff", weight: 8, opacity: 0.7, lineCap: "round", lineJoin: "round" }).addTo(map);
+            const line = L.polyline(path, { color: accentColor, weight: 4, opacity: 0.95, lineCap: "round", lineJoin: "round", smoothFactor: 1 }).addTo(map);
             layers.push(casing, line);
         }
 
-        route.pois.forEach((poi) => {
+        pois.forEach((poi) => {
             const cls = poi.kind === "start" ? "start" : poi.kind === "summit" || poi.kind === "end" ? "end" : "";
             const icon = L.divIcon({
                 className: "",
@@ -77,10 +86,10 @@ export function RouteMap({ route, height = "100%", interactive = true, onMapClic
             layers.push(marker);
         });
 
-        if (route.path.length > 0) {
-            map.fitBounds(L.latLngBounds(route.path), { padding: [40, 40] });
-        } else if (route.pois.length > 0) {
-            map.setView(route.pois[0].coords, 13);
+        if (path.length > 0) {
+            map.fitBounds(L.latLngBounds(path), { padding: [40, 40] });
+        } else if (pois.length > 0) {
+            map.setView(pois[0].coords, 13);
         } else {
             map.setView([49.27, 19.95], 11);
         }
@@ -89,6 +98,13 @@ export function RouteMap({ route, height = "100%", interactive = true, onMapClic
             layers.forEach((l) => map.removeLayer(l));
         };
     }, [route]);
+
+    // Fly to searched location
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || !flyTo) return;
+        map.flyTo(flyTo, 13, { duration: 1 });
+    }, [flyTo]);
 
     // Click handler
     useEffect(() => {

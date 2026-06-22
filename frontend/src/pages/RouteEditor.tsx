@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Clock, MapPin, MousePointerClick, Mountain, Pencil, Save, Trash2, X } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, MousePointerClick, Mountain, Pencil, Save, Search, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { NewRouteButton } from "@/components/NewRouteButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -8,6 +9,7 @@ import { RouteMap } from "@/components/RouteMap";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { getRoute, poiKindLabel, type POI, type Route } from "@/data/mockRoutes";
+import { routesApi, ApiError } from "@/lib/api";
 import type { LucideIcon } from "lucide-react";
 
 const emptyRoute: Route = {
@@ -59,6 +61,31 @@ const RouteEditor = () => {
   const initial = slug && slug !== "new" ? getRoute(slug) ?? emptyRoute : emptyRoute;
   const [route, setRoute] = useState<Route>({ ...initial, pois: [...initial.pois], path: [...initial.path] });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [searchQ, setSearchQ] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [flyTo, setFlyTo] = useState<[number, number] | undefined>();
+
+  const handleSearch = async () => {
+    if (!searchQ.trim()) return;
+    setSearching(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQ)}&format=json&limit=1`,
+        { headers: { "Accept-Language": "pl" } }
+      );
+      const data: { lat: string; lon: string }[] = await res.json();
+      if (data.length > 0) {
+        setFlyTo([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+      } else {
+        toast.error("Nie znaleziono miejsca.");
+      }
+    } catch {
+      toast.error("Błąd wyszukiwania.");
+    } finally {
+      setSearching(false);
+    }
+  };
 
   const distance = useMemo(() => {
     if (route.path.length < 2) return 0;
@@ -94,6 +121,41 @@ const RouteEditor = () => {
 
   const isEmpty = route.path.length === 0 && route.pois.length === 0;
 
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const created = await routesApi.create({
+        title: route.title,
+        description: route.description,
+        region: route.region,
+        country: route.country,
+        difficulty: route.difficulty,
+        isPublic: route.isPublic,
+        tags: route.tags,
+      });
+      if (route.pois.length > 0) {
+        await routesApi.upsertPoints(
+          created.id,
+          route.pois.map((poi, i) => ({
+            order: i,
+            lat: poi.coords[0],
+            lng: poi.coords[1],
+            elevation: poi.elevation,
+            kind: poi.kind,
+            name: poi.name,
+            note: poi.note,
+          }))
+        );
+      }
+      toast.success("Trasa zapisana!");
+      navigate("/app");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Nie udało się zapisać trasy.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
       {/* Slim editor header */}
@@ -112,10 +174,11 @@ const RouteEditor = () => {
         {/* Map base */}
         <div className="absolute inset-0">
           <RouteMap
-            route={isEmpty ? { ...route, path: [], pois: [] } : route}
+            route={isEmpty ? { path: [], pois: [] } : route}
             onMapClick={handleMapClick}
             zoomControl={false}
             height="100%"
+            flyTo={flyTo}
           />
         </div>
 
@@ -139,6 +202,24 @@ const RouteEditor = () => {
           >
             <ArrowLeft className="h-3 w-3" /> Anuluj i wróć
           </Link>
+
+          {/* Geocoding search */}
+          <div className="mb-4">
+            <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Wyszukaj miejsce na mapie</span>
+            <div className="flex gap-1.5">
+              <input
+                value={searchQ}
+                onChange={(e) => setSearchQ(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
+                placeholder="Np. Rysy, Tatry..."
+                className="flex-1 rounded-md border bg-background px-3 py-1.5 text-sm outline-none transition-colors focus:border-primary"
+                style={{ borderColor: "hsl(var(--hairline))" }}
+              />
+              <Button size="sm" variant="outline" onClick={handleSearch} disabled={searching} aria-label="Szukaj">
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
 
           <label className="block">
             <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Nazwa trasy</span>
@@ -197,8 +278,8 @@ const RouteEditor = () => {
                 <X className="h-4 w-4" /> Anuluj
               </Link>
             </Button>
-            <Button variant="default" size="sm" onClick={() => navigate("/app")}>
-              <Save className="h-4 w-4" /> Zapisz trasę
+            <Button variant="default" size="sm" onClick={handleSave} disabled={saving || isEmpty}>
+              <Save className="h-4 w-4" /> {saving ? "Zapisuję…" : "Zapisz trasę"}
             </Button>
           </div>
         </div>

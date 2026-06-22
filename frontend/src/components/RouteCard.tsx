@@ -1,17 +1,17 @@
 ﻿import { Link } from "react-router-dom";
 import { ArrowUpRight, Mountain, Route as RouteIcon, Timer } from "lucide-react";
-import type { Route } from "@/data/mockRoutes";
+import type { RouteDto } from "@/lib/api";
 import { DifficultyBadge } from "./DifficultyBadge";
 import { RouteMap } from "./RouteMap";
 
-export function RouteCard({ route }: { route: Route }) {
+export function RouteCard({ route }: { route: RouteDto }) {
     return (
         <Link
             to={`/app/route/${route.slug}`}
             className="group relative flex flex-col overflow-hidden rounded-xl border bg-card shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-lift"
         >
             <div className="relative h-44 overflow-hidden border-b" style={{ borderColor: "hsl(var(--hairline))" }}>
-                <RouteMap route={route} interactive={false} height="100%" />
+                <RouteMap route={{}} interactive={false} height="100%" />
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card/80 to-transparent" />
             </div>
             <div className="flex flex-1 flex-col gap-3 p-5">
@@ -28,7 +28,7 @@ export function RouteCard({ route }: { route: Route }) {
                     <Stat icon={<Timer className="h-3.5 w-3.5" />} value={`${route.durationH}`} unit="h" />
                 </div>
                 <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{route.author.name}</span>
+                    <span>{route.ownerUserName ?? ""}</span>
                     <ArrowUpRight className="h-4 w-4 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100 text-primary" />
                 </div>
             </div>

@@ -37,7 +37,7 @@ const AuthPage = ({ mode }: Props) => {
       }
       // logujemy po nazwie użytkownika (po rejestracji — tymi samymi danymi)
       const { accessToken } = await authApi.login({ userName, password });
-      login(accessToken);
+      login(accessToken, userName);
       navigate("/app");
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Coś poszło nie tak. Spróbuj ponownie.");

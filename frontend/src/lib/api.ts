@@ -66,3 +66,70 @@ export const authApi = {
       body: JSON.stringify(body),
     }),
 };
+
+// --- Routes API ---
+
+export interface CreateRouteDto {
+  title: string;
+  description?: string;
+  region?: string;
+  country?: string;
+  difficulty: string;
+  isPublic: boolean;
+  tags: string[];
+}
+
+export interface RoutePointInput {
+  order: number;
+  lat: number;
+  lng: number;
+  elevation?: number;
+  kind: string;
+  name?: string;
+  note?: string;
+}
+
+export interface RouteDto {
+  id: string;
+  slug: string;
+  title: string;
+  region?: string;
+  difficulty: string;
+  distanceKm: number;
+  ascentM: number;
+  durationH: number;
+  isPublic: boolean;
+  updatedAt: string;
+  ownerUserName?: string;
+}
+
+export interface RoutePointDto {
+  order: number;
+  lat: number;
+  lng: number;
+  elevation?: number;
+  kind: string;
+  name?: string;
+  note?: string;
+}
+
+export interface RouteDetailDto extends RouteDto {
+  description?: string;
+  country?: string;
+  tags: string[];
+  createdAt: string;
+  points: RoutePointDto[];
+}
+
+export const routesApi = {
+  create: (body: CreateRouteDto) =>
+    request<RouteDto>("/routes", { method: "POST", body: JSON.stringify(body) }),
+  upsertPoints: (id: string, points: RoutePointInput[]) =>
+    request<RouteDto>(`/routes/${id}/points`, { method: "PUT", body: JSON.stringify({ points }) }),
+  mine: () =>
+    request<RouteDto[]>("/routes/mine"),
+  recent: () =>
+    request<RouteDto[]>("/routes/recent"),
+  bySlug: (slug: string) =>
+    request<RouteDetailDto>(`/routes/${slug}`),
+};

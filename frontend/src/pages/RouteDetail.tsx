@@ -1,16 +1,33 @@
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Download, Edit3, Mountain, Route as RouteIcon, Share2, Timer, User } from "lucide-react";
+import { ArrowLeft, Edit3, Mountain, Route as RouteIcon, Timer, MapPin } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { RouteMap } from "@/components/RouteMap";
 import { Button } from "@/components/ui/button";
 import { DifficultyBadge } from "@/components/DifficultyBadge";
-import { getRoute, poiKindLabel } from "@/data/mockRoutes";
+import { routesApi } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { poiKindLabel } from "@/data/mockRoutes";
 
 const RouteDetail = () => {
-  const { slug } = useParams();
-  const route = slug ? getRoute(slug) : undefined;
+  const { slug } = useParams<{ slug: string }>();
+  const { userName } = useAuth();
 
-  if (!route) {
+  const { data: route, isLoading, isError } = useQuery({
+    queryKey: ["route", slug],
+    queryFn: () => routesApi.bySlug(slug!),
+    enabled: !!slug,
+  });
+
+  if (isLoading) {
+    return (
+      <AppShell>
+        <div className="container py-24 text-center text-sm text-muted-foreground">Ładowanie trasy...</div>
+      </AppShell>
+    );
+  }
+
+  if (isError || !route) {
     return (
       <AppShell>
         <div className="container py-24 text-center">
@@ -20,6 +37,19 @@ const RouteDetail = () => {
       </AppShell>
     );
   }
+
+  const mapRoute = {
+    path: route.points.map((p): [number, number] => [p.lat, p.lng]),
+    pois: route.points.map((p) => ({
+      kind: p.kind as keyof typeof poiKindLabel,
+      coords: [p.lat, p.lng] as [number, number],
+      name: p.name ?? `Punkt ${p.order + 1}`,
+      elevation: p.elevation,
+      note: p.note,
+    })),
+  };
+
+  const isOwner = !!userName && userName === route.ownerUserName;
 
   return (
     <AppShell>
@@ -31,23 +61,29 @@ const RouteDetail = () => {
           <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
               <div className="flex items-center gap-3">
-                <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{route.region} · {route.country}</span>
+                <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  {[route.region, route.country].filter(Boolean).join(" · ")}
+                </span>
                 <DifficultyBadge difficulty={route.difficulty} />
               </div>
               <h1 className="mt-2 font-display text-4xl font-medium tracking-tight md:text-5xl">{route.title}</h1>
               <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-[10px] font-medium">{route.author.initials}</span>
-                <span>{route.author.name}</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-[10px] font-medium">
+                  {route.ownerUserName?.[0]?.toUpperCase() ?? "?"}
+                </span>
+                <span>{route.ownerUserName ?? "—"}</span>
                 <span>·</span>
-                <span>zaktualizowano {route.updatedAt}</span>
+                <span>zaktualizowano {new Date(route.updatedAt).toLocaleDateString("pl-PL")}</span>
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm"><Share2 className="h-4 w-4" /> Udostępnij</Button>
-              <Button variant="outline" size="sm"><Download className="h-4 w-4" /> GPX</Button>
-              <Button variant="default" size="sm" asChild>
-                <Link to={`/app/route/${route.slug}/edit`}><Edit3 className="h-4 w-4" /> Edytuj</Link>
-              </Button>
+              {isOwner && (
+                <Button variant="default" size="sm" asChild>
+                  <Link to={`/app/route/${route.slug}/edit`}>
+                    <Edit3 className="h-4 w-4" /> Modyfikuj
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -59,7 +95,7 @@ const RouteDetail = () => {
           <Stat icon={<RouteIcon className="h-4 w-4" />} value={route.distanceKm} unit="km" label="Dystans" />
           <Stat icon={<Mountain className="h-4 w-4" />} value={route.ascentM} unit="m ↑" label="Suma podejść" />
           <Stat icon={<Timer className="h-4 w-4" />} value={route.durationH} unit="h" label="Szac. czas" />
-          <Stat icon={<User className="h-4 w-4" />} value={route.pois.length} unit="" label="Punktów POI" />
+          <Stat icon={<MapPin className="h-4 w-4" />} value={route.points.length} unit="" label="Punktów POI" />
         </div>
 
         {/* Map + sidebar */}
@@ -67,16 +103,25 @@ const RouteDetail = () => {
           <div className="lg:col-span-2">
             <div className="overflow-hidden rounded-xl border shadow-soft" style={{ borderColor: "hsl(var(--hairline))" }}>
               <div className="h-[520px]">
-                <RouteMap route={route} height="100%" />
+                <RouteMap route={mapRoute} height="100%" />
               </div>
             </div>
-            <div className="mt-6 rounded-xl border p-6" style={{ borderColor: "hsl(var(--hairline))" }}>
-              <h2 className="font-display text-xl font-medium">Opis</h2>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{route.description}</p>
-              <div className="mt-4 flex flex-wrap gap-1.5">
-                {route.tags.map((t) => (<span key={t} className="chip">#{t}</span>))}
+
+            {(route.description || (route.tags?.length ?? 0) > 0) && (
+              <div className="mt-6 rounded-xl border p-6" style={{ borderColor: "hsl(var(--hairline))" }}>
+                <h2 className="font-display text-xl font-medium">Opis</h2>
+                {route.description && (
+                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{route.description}</p>
+                )}
+                {route.tags?.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {route.tags.map((t) => (
+                      <span key={t} className="rounded-full border px-2.5 py-0.5 text-[11px] text-muted-foreground" style={{ borderColor: "hsl(var(--hairline))" }}>#{t}</span>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
+            )}
           </div>
 
           <aside className="rounded-xl border" style={{ borderColor: "hsl(var(--hairline))" }}>
@@ -84,28 +129,47 @@ const RouteDetail = () => {
               <h2 className="font-display text-lg font-medium">Punkty trasy</h2>
               <p className="text-xs text-muted-foreground">Po kolei od startu do mety</p>
             </div>
-            <ol className="relative">
-              {route.pois.map((poi, i) => (
-                <li key={poi.id} className="relative flex gap-4 px-5 py-4 hairline last:border-b-0">
-                  <div className="relative flex flex-col items-center">
-                    <span className={`flex h-7 w-7 items-center justify-center rounded-full border text-[11px] font-medium ${
-                      poi.kind === "start" ? "bg-primary text-primary-foreground border-primary" :
-                      poi.kind === "summit" || poi.kind === "end" ? "bg-success/15 text-success border-success/30" :
-                      "bg-card text-foreground"
-                    }`} style={{ borderColor: poi.kind === "start" ? undefined : "hsl(var(--hairline))" }}>
-                      {i + 1}
-                    </span>
-                    {i < route.pois.length - 1 && <span className="mt-1 w-px flex-1 bg-hairline" />}
-                  </div>
-                  <div className="min-w-0 flex-1 pb-2">
-                    <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{poiKindLabel[poi.kind]}</div>
-                    <div className="mt-0.5 truncate text-sm font-medium">{poi.name}</div>
-                    {poi.elevation && <div className="data-num text-[11px] text-muted-foreground">{poi.elevation} m n.p.m.</div>}
-                    {poi.note && <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{poi.note}</p>}
-                  </div>
-                </li>
-              ))}
-            </ol>
+            {route.points.length === 0 ? (
+              <div className="px-5 py-10 text-center text-sm text-muted-foreground">
+                Trasa nie ma jeszcze punktów.
+              </div>
+            ) : (
+              <ol className="relative">
+                {route.points.map((pt, i) => {
+                  const kindKey = pt.kind as keyof typeof poiKindLabel;
+                  const isStart = pt.kind === "start";
+                  const isEnd = pt.kind === "summit" || pt.kind === "end";
+                  return (
+                    <li key={i} className="relative flex gap-4 border-b px-5 py-4 last:border-b-0" style={{ borderColor: "hsl(var(--hairline))" }}>
+                      <div className="relative flex flex-col items-center">
+                        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[11px] font-medium ${
+                          isStart ? "bg-primary text-primary-foreground border-primary" :
+                          isEnd ? "bg-card text-foreground" :
+                          "bg-card text-foreground"
+                        }`} style={{ borderColor: isStart ? undefined : "hsl(var(--hairline))" }}>
+                          {i + 1}
+                        </span>
+                        {i < route.points.length - 1 && (
+                          <span className="mt-1 w-px flex-1 bg-border" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1 pb-2">
+                        <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                          {poiKindLabel[kindKey] ?? pt.kind}
+                        </div>
+                        <div className="mt-0.5 truncate text-sm font-medium">{pt.name ?? `Punkt ${i + 1}`}</div>
+                        {pt.elevation != null && (
+                          <div className="text-[11px] text-muted-foreground">{pt.elevation} m n.p.m.</div>
+                        )}
+                        {pt.note && (
+                          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{pt.note}</p>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
           </aside>
         </div>
       </div>
@@ -116,7 +180,10 @@ const RouteDetail = () => {
 function Stat({ icon, value, unit, label }: { icon: React.ReactNode; value: number | string; unit: string; label: string }) {
   return (
     <div className="bg-card p-5">
-      <div className="flex items-center gap-2 text-muted-foreground">{icon}<span className="text-[11px] uppercase tracking-[0.14em]">{label}</span></div>
+      <div className="flex items-center gap-2 text-muted-foreground">
+        {icon}
+        <span className="text-[11px] uppercase tracking-[0.14em]">{label}</span>
+      </div>
       <div className="mt-3 flex items-baseline gap-1.5">
         <span className="data-num font-display text-3xl font-medium tracking-tight">{value}</span>
         {unit && <span className="text-xs text-muted-foreground">{unit}</span>}

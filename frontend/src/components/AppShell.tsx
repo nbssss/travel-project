@@ -13,7 +13,7 @@ const nav = [
 
 export function AppShell({ children }: { children: ReactNode }) {
     const navigate = useNavigate();
-    const { logout } = useAuth();
+    const { logout, userName } = useAuth();
 
     const handleLogout = () => {
         logout();
@@ -52,10 +52,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                         <button
                             onClick={() => navigate("/app/profile")}
                             aria-label="Profil"
-                            title="Profil"
-                            className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-xs font-medium text-foreground transition-colors hover:bg-secondary/80"
+                            title={userName ?? "Profil"}
+                            className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                         >
-                            NB
+                            {userName ? userName[0].toUpperCase() : "?"}
                         </button>
                         <button
                             onClick={handleLogout}
