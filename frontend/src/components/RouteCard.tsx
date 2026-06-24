@@ -1,10 +1,32 @@
-﻿import { Link } from "react-router-dom";
-import { ArrowUpRight, Mountain, Route as RouteIcon, Timer } from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowUpRight, Heart, Mountain, Route as RouteIcon, Timer } from "lucide-react";
 import type { RouteDto } from "@/lib/api";
+import { routesApi } from "@/lib/api";
 import { DifficultyBadge } from "./DifficultyBadge";
 import { RouteMap } from "./RouteMap";
 
 export function RouteCard({ route }: { route: RouteDto }) {
+    const [liked, setLiked] = useState(route.isLikedByMe ?? false);
+    const [count, setCount] = useState(route.likesCount ?? 0);
+
+    const handleLike = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const newLiked = !liked;
+        setLiked(newLiked);
+        setCount((c) => c + (newLiked ? 1 : -1));
+        try {
+            const res = newLiked
+                ? await routesApi.like(route.id)
+                : await routesApi.unlike(route.id);
+            setCount(res.likesCount);
+        } catch {
+            setLiked(!newLiked);
+            setCount((c) => c + (newLiked ? -1 : 1));
+        }
+    };
+
     return (
         <Link
             to={`/app/route/${route.slug}`}
@@ -29,7 +51,16 @@ export function RouteCard({ route }: { route: RouteDto }) {
                 </div>
                 <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
                     <span>{route.ownerUserName ?? ""}</span>
-                    <ArrowUpRight className="h-4 w-4 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100 text-primary" />
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleLike}
+                            className={`flex items-center gap-1 transition-colors ${liked ? "text-primary" : "hover:text-primary"}`}
+                        >
+                            <Heart className={`h-3.5 w-3.5 ${liked ? "fill-current" : ""}`} />
+                            <span className="data-num">{count}</span>
+                        </button>
+                        <ArrowUpRight className="h-4 w-4 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100 text-primary" />
+                    </div>
                 </div>
             </div>
         </Link>

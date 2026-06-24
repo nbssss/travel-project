@@ -25,12 +25,30 @@ namespace TravelProject.Features
                     .OrderByDescending(r => r.UpdatedAt)
                     .ToListAsync();
 
-                return Results.Ok(routes.Select(r => ToDto(r, ownerUserName)));
+                var routeIds = routes.Select(r => r.Id).ToList();
+
+                var countsMap = routeIds.Count > 0
+                    ? await db.RouteLikes
+                        .Where(l => routeIds.Contains(l.RouteId))
+                        .GroupBy(l => l.RouteId)
+                        .ToDictionaryAsync(g => g.Key, g => g.Count())
+                    : [];
+
+                var userLiked = routeIds.Count > 0
+                    ? (await db.RouteLikes
+                        .Where(l => l.UserId == userId && routeIds.Contains(l.RouteId))
+                        .Select(l => l.RouteId)
+                        .ToListAsync()).ToHashSet()
+                    : new HashSet<Guid>();
+
+                return Results.Ok(routes.Select(r => ToDto(r, ownerUserName,
+                    countsMap.GetValueOrDefault(r.Id, 0),
+                    userLiked.Contains(r.Id))));
             })
             .RequireAuthorization();
         }
 
-        internal static object ToDto(Route r, string? ownerUserName) => new
+        internal static object ToDto(Route r, string? ownerUserName, int likesCount = 0, bool isLikedByMe = false) => new
         {
             r.Id,
             r.Slug,
@@ -43,6 +61,8 @@ namespace TravelProject.Features
             r.IsPublic,
             r.UpdatedAt,
             OwnerUserName = ownerUserName,
+            LikesCount = likesCount,
+            IsLikedByMe = isLikedByMe,
         };
     }
 }

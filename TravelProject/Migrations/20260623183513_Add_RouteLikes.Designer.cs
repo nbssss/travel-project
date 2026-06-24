@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -10,9 +11,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace TravelProject.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260623183513_Add_RouteLikes")]
+    partial class Add_RouteLikes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -29,9 +32,6 @@ namespace TravelProject.Migrations
 
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("integer");
-
-                    b.Property<string>("AvatarUrl")
-                        .HasColumnType("text");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -318,33 +318,6 @@ namespace TravelProject.Migrations
                     b.ToTable("RouteLikes", "public");
                 });
 
-            modelBuilder.Entity("TravelProject.Models.RoutePhoto", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("RouteId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RouteId");
-
-                    b.ToTable("RoutePhotos", "public");
-                });
-
             modelBuilder.Entity("TravelProject.Models.RoutePoint", b =>
                 {
                     b.Property<Guid>("Id")
@@ -492,17 +465,6 @@ namespace TravelProject.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("TravelProject.Models.RoutePhoto", b =>
-                {
-                    b.HasOne("TravelProject.Models.Route", "Route")
-                        .WithMany("Photos")
-                        .HasForeignKey("RouteId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Route");
-                });
-
             modelBuilder.Entity("TravelProject.Models.RoutePoint", b =>
                 {
                     b.HasOne("TravelProject.Models.Route", "Route")
@@ -535,8 +497,6 @@ namespace TravelProject.Migrations
 
             modelBuilder.Entity("TravelProject.Models.Route", b =>
                 {
-                    b.Navigation("Photos");
-
                     b.Navigation("Points");
 
                     b.Navigation("Shares");

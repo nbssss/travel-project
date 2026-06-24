@@ -52,6 +52,7 @@ namespace TravelProject
             builder.Services.AddAuthorization();
 
             builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+            builder.Services.AddAntiforgery();
 
             var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
             builder.Services.AddCors(options =>
@@ -71,19 +72,29 @@ namespace TravelProject
             }
 
             app.UseExceptionHandler();
+            app.UseHttpsRedirection();
+            app.UseStaticFiles();
+            app.UseCors();
+            app.UseAuthentication();
+            app.UseAuthorization();
+            app.UseAntiforgery();
 
+            GetStats.MapEndpoint(app);
+            GetProfile.MapEndpoint(app);
+            UploadAvatar.MapEndpoint(app);
+            UploadRoutePhoto.MapEndpoint(app);
+            DeleteRoutePhoto.MapEndpoint(app);
             RegisterUser.MapEndpoint(app);
             LoginUser.MapEndpoint(app);
             CreateRoute.MapEndpoint(app);
             UpsertRoutePoints.MapEndpoint(app);
             GetMyRoutes.MapEndpoint(app);
             GetRecentRoutes.MapEndpoint(app);
+            GetLikedRoutes.MapEndpoint(app);
+            LikeRoute.MapEndpoint(app);
+            UnlikeRoute.MapEndpoint(app);
             GetRouteBySlug.MapEndpoint(app);
 
-            app.UseHttpsRedirection();
-            app.UseCors();
-            app.UseAuthentication();
-            app.UseAuthorization();
             app.MapControllers();
 
             app.Run();

@@ -20,5 +20,6 @@ namespace TravelProject.Models
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public List<RoutePoint> Points { get; set; } = [];
         public List<RouteShare> Shares { get; set; } = [];
+        public List<RoutePhoto> Photos { get; set; } = [];
     }
 }

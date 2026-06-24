@@ -11,6 +11,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> dbConte
     public DbSet<Route> Routes => Set<Route>();
     public DbSet<RoutePoint> RoutePoints => Set<RoutePoint>();
     public DbSet<RouteShare> RouteShares => Set<RouteShare>();
+    public DbSet<RouteLike> RouteLikes => Set<RouteLike>();
+    public DbSet<RoutePhoto> RoutePhotos => Set<RoutePhoto>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -64,6 +66,30 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> dbConte
              .WithMany()
              .HasForeignKey(s => s.SharedWithUserId)
              .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<RoutePhoto>(e =>
+        {
+            e.ToTable("RoutePhotos", schema: "public");
+            e.Property(p => p.Url).HasMaxLength(500);
+            e.HasOne(p => p.Route)
+             .WithMany(r => r.Photos)
+             .HasForeignKey(p => p.RouteId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<RouteLike>(e =>
+        {
+            e.ToTable("RouteLikes", schema: "public");
+            e.HasIndex(l => new { l.RouteId, l.UserId }).IsUnique();
+            e.HasOne(l => l.Route)
+             .WithMany()
+             .HasForeignKey(l => l.RouteId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(l => l.User)
+             .WithMany()
+             .HasForeignKey(l => l.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
