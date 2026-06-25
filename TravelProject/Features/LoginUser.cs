@@ -30,7 +30,8 @@ namespace TravelProject.Features
                 List<Claim> claims =
                 [
                     new(JwtRegisteredClaimNames.Sub, user.Id),
-                    new(JwtRegisteredClaimNames.Email, user.Email!)
+                    new(JwtRegisteredClaimNames.Email, user.Email!),
+                    new(JwtRegisteredClaimNames.Name, user.UserName!)
                 ];
 
                 var tokenDescriptor = new SecurityTokenDescriptor

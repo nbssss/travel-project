@@ -1,4 +1,4 @@
-
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -14,41 +14,45 @@ namespace TravelProject
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddProblemDetails();
 
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
-                .AddEntityFrameworkStores<ApplicationDbContext>();
+            builder.Services.AddIdentityCore<ApplicationUser>(options =>
+            {
+                options.User.RequireUniqueEmail = true;
+            })
+            .AddEntityFrameworkStores<ApplicationDbContext>();
 
             builder.Services
                 .AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                    ValidAudience = builder.Configuration["Jwt:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]!))
-                };
-            });
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                        ValidAudience = builder.Configuration["Jwt:Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(
+                            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]!))
+                    };
+                });
 
             builder.Services.AddAuthorization();
+
+            builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+            builder.Services.AddAntiforgery();
 
             var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
             builder.Services.AddCors(options =>
@@ -57,30 +61,39 @@ namespace TravelProject
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
 
-                using (var scope = app.Services.CreateScope())
-                {
-                    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                    db.Database.Migrate();
-                };
+                using var scope = app.Services.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                db.Database.Migrate();
             }
 
+            app.UseExceptionHandler();
+            app.UseHttpsRedirection();
+            app.UseStaticFiles();
+            app.UseCors();
+            app.UseAuthentication();
+            app.UseAuthorization();
+            app.UseAntiforgery();
+
+            GetStats.MapEndpoint(app);
+            GetProfile.MapEndpoint(app);
+            UploadAvatar.MapEndpoint(app);
+            UploadRoutePhoto.MapEndpoint(app);
+            DeleteRoutePhoto.MapEndpoint(app);
             RegisterUser.MapEndpoint(app);
             LoginUser.MapEndpoint(app);
-
-            app.UseHttpsRedirection();
-
-            app.UseCors();
-
-            app.UseAuthentication();
-
-            app.UseAuthorization();
-
+            CreateRoute.MapEndpoint(app);
+            UpsertRoutePoints.MapEndpoint(app);
+            GetMyRoutes.MapEndpoint(app);
+            GetRecentRoutes.MapEndpoint(app);
+            GetLikedRoutes.MapEndpoint(app);
+            LikeRoute.MapEndpoint(app);
+            UnlikeRoute.MapEndpoint(app);
+            GetRouteBySlug.MapEndpoint(app);
 
             app.MapControllers();
 

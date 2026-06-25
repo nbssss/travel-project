@@ -10,58 +10,112 @@
 
 @layer base {
   :root {
-    /* Surfaces */
-    --background: 40 20% 97%;          /* warm bone */
-    --foreground: 160 10% 8%;          /* deep graphite */
+    /* Surfaces — beżowe tło, ciepłe karty */
+    --background: 38 45% 90%;          /* ciepły beż */
+    --foreground: 160 12% 8%;          /* głęboki grafit */
 
-    --card: 0 0% 100%;
-    --card-foreground: 160 10% 8%;
+    --card: 40 38% 96%;                /* kremowa karta */
+    --card-foreground: 160 12% 8%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 160 10% 8%;
+    --popover: 40 38% 96%;
+    --popover-foreground: 160 12% 8%;
 
-    /* Brand: deep forest teal */
-    --primary: 172 45% 26%;
-    --primary-foreground: 40 30% 97%;
-    --primary-glow: 172 40% 38%;
+    /* Brand: żywy leśny zielony */
+    --primary: 158 62% 28%;
+    --primary-foreground: 40 40% 97%;
+    --primary-glow: 158 58% 42%;
 
-    --secondary: 40 15% 93%;
-    --secondary-foreground: 160 10% 12%;
+    --secondary: 38 35% 88%;
+    --secondary-foreground: 160 12% 12%;
 
-    --muted: 40 12% 92%;
-    --muted-foreground: 160 6% 40%;
+    --muted: 38 30% 86%;
+    --muted-foreground: 160 8% 38%;
 
-    /* Accent: burnt amber for stats / POI */
-    --accent: 22 70% 48%;
-    --accent-foreground: 40 30% 97%;
+    /* Accent: żywy pomarańcz */
+    --accent: 24 88% 50%;
+    --accent-foreground: 40 40% 97%;
 
-    --destructive: 4 70% 48%;
+    --destructive: 4 75% 48%;
     --destructive-foreground: 40 30% 97%;
 
-    --success: 145 45% 32%;
+    --success: 145 52% 30%;
 
-    --border: 40 10% 86%;
-    --input: 40 10% 86%;
-    --ring: 172 45% 26%;
+    --border: 38 25% 80%;
+    --input: 38 25% 80%;
+    --ring: 158 62% 28%;
 
     --radius: 0.5rem;
 
     /* Custom */
-    --hairline: 160 8% 82%;
+    --hairline: 38 22% 76%;
     --elevation: 160 10% 8%;
-    --gradient-hero: linear-gradient(135deg, hsl(172 45% 22%) 0%, hsl(172 40% 36%) 100%);
-    --gradient-soft: linear-gradient(180deg, hsl(40 25% 98%) 0%, hsl(40 18% 94%) 100%);
-    --shadow-soft: 0 1px 2px hsl(var(--elevation) / 0.04), 0 8px 24px -12px hsl(var(--elevation) / 0.08);
-    --shadow-lift: 0 1px 2px hsl(var(--elevation) / 0.05), 0 20px 40px -20px hsl(var(--elevation) / 0.18);
+    --gradient-hero: linear-gradient(135deg, hsl(158 62% 20%) 0%, hsl(158 55% 36%) 100%);
+    --gradient-soft: linear-gradient(180deg, hsl(40 45% 94%) 0%, hsl(38 40% 88%) 100%);
+    --shadow-soft: 0 1px 2px hsl(var(--elevation) / 0.05), 0 8px 24px -12px hsl(var(--elevation) / 0.10);
+    --shadow-lift: 0 1px 2px hsl(var(--elevation) / 0.06), 0 20px 40px -20px hsl(var(--elevation) / 0.20);
 
-    --sidebar-background: 40 22% 96%;
+    --sidebar-background: 38 40% 88%;
     --sidebar-foreground: 160 10% 18%;
-    --sidebar-primary: 172 45% 26%;
-    --sidebar-primary-foreground: 40 30% 97%;
-    --sidebar-accent: 40 15% 91%;
-    --sidebar-accent-foreground: 160 10% 12%;
-    --sidebar-border: 40 10% 86%;
-    --sidebar-ring: 172 45% 26%;
+    --sidebar-primary: 158 62% 28%;
+    --sidebar-primary-foreground: 40 40% 97%;
+    --sidebar-accent: 38 32% 84%;
+    --sidebar-accent-foreground: 160 12% 12%;
+    --sidebar-border: 38 25% 78%;
+    --sidebar-ring: 158 62% 28%;
+  }
+
+  .pride {
+    /* Lavender-washed background */
+    --background: 290 40% 97%;
+    --foreground: 270 35% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 270 35% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 270 35% 12%;
+
+    /* Primary: vibrant purple */
+    --primary: 270 72% 50%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 270 72% 62%;
+
+    --secondary: 290 30% 93%;
+    --secondary-foreground: 270 30% 15%;
+
+    --muted: 290 25% 92%;
+    --muted-foreground: 270 15% 42%;
+
+    /* Accent: hot pink */
+    --accent: 322 78% 52%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 4 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 145 50% 35%;
+
+    --border: 290 20% 86%;
+    --input: 290 20% 86%;
+    --ring: 270 72% 50%;
+
+    --radius: 0.5rem;
+
+    --hairline: 290 18% 82%;
+    --elevation: 270 30% 15%;
+    --gradient-hero: linear-gradient(135deg, hsl(263 70% 42%) 0%, hsl(322 78% 50%) 55%, hsl(22 90% 52%) 100%);
+    --gradient-soft: linear-gradient(180deg, hsl(290 40% 98%) 0%, hsl(300 28% 95%) 100%);
+    --shadow-soft: 0 1px 2px hsl(270 30% 15% / 0.05), 0 8px 24px -12px hsl(270 30% 15% / 0.10);
+    --shadow-lift: 0 1px 2px hsl(270 30% 15% / 0.06), 0 20px 40px -20px hsl(270 30% 15% / 0.20);
+
+    --sidebar-background: 290 35% 96%;
+    --sidebar-foreground: 270 30% 18%;
+    --sidebar-primary: 270 72% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 290 25% 91%;
+    --sidebar-accent-foreground: 270 30% 15%;
+    --sidebar-border: 290 20% 86%;
+    --sidebar-ring: 270 72% 50%;
   }
 
   .dark {
@@ -166,8 +220,54 @@
 .leaflet-control-zoom a {
   @apply !bg-card !text-foreground !border-border;
 }
+/* Light mode — lekko stonowane, zachowane naturalne kolory */
+.leaflet-tile {
+  filter: saturate(0.88) contrast(0.93) brightness(1.01);
+}
+/* Dark mode — ciemna mapa z naturalnymi kolorami */
 .dark .leaflet-tile {
-  filter: invert(0.92) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.6);
+  filter: invert(0.92) hue-rotate(180deg) brightness(0.9) contrast(0.88) saturate(1.4);
+}
+/* Pride — żywe naturalne kolory */
+.pride .leaflet-tile {
+  filter: saturate(1.25) brightness(1.01);
+}
+
+/* Pride mode — pastelowe tęczowe tło */
+@keyframes rainbowBgShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.pride body {
+  background-image: linear-gradient(
+    135deg,
+    hsl(350 75% 94%),
+    hsl(22 82% 93%),
+    hsl(52 80% 91%),
+    hsl(128 52% 91%),
+    hsl(198 65% 92%),
+    hsl(258 58% 93%),
+    hsl(312 68% 93%),
+    hsl(350 75% 94%)
+  );
+  background-size: 400% 400%;
+  background-attachment: fixed;
+  animation: rainbowBgShift 16s ease infinite;
+}
+
+/* Pride mode — rainbow shimmer on primary buttons */
+@keyframes rainbowShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.pride [data-slot="button"][class*="bg-primary"],
+.pride button.bg-primary {
+  background: linear-gradient(270deg, hsl(263 70% 50%), hsl(322 78% 52%), hsl(22 90% 52%), hsl(45 95% 50%), hsl(145 55% 38%), hsl(210 80% 48%), hsl(263 70% 50%));
+  background-size: 300% 300%;
+  animation: rainbowShift 6s ease infinite;
+  border: none;
 }
 .poi-marker {
   width: 14px; height: 14px;
@@ -178,6 +278,38 @@
 }
 .poi-marker.start { background: hsl(var(--primary)); }
 .poi-marker.end   { background: hsl(var(--success)); }
+.poi-marker.draggable { cursor: grab; width: 18px; height: 18px; box-shadow: 0 0 0 2px hsl(var(--primary) / 0.35), var(--shadow-soft); }
+.poi-marker.draggable:active { cursor: grabbing; }
+
+/* Mountain peak markers */
+.peak-marker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #3d2200;
+  text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 5px #fff;
+  pointer-events: none;
+  white-space: nowrap;
+  line-height: 1;
+}
+.peak-label {
+  background: rgba(255, 252, 240, 0.9);
+  border: 1px solid rgba(120, 70, 10, 0.22);
+  border-radius: 3px;
+  padding: 1px 4px;
+  margin-top: 2px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #3a2000;
+  line-height: 1.35;
+  text-align: center;
+  text-shadow: none;
+  white-space: nowrap;
+}
+.peak-label small { display: block; font-size: 8px; color: #888; font-weight: 400; }
 
 /* Pulsing hint indicator (route editor "click the map" banner) */
 @keyframes pulseDot {

@@ -1,17 +1,29 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Compass, Download, Map as MapIcon, Mountain, Share2 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { NewRouteButton } from "@/components/NewRouteButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { RouteMap } from "@/components/RouteMap";
+import { Fireworks } from "@/components/Fireworks";
 import { mockRoutes } from "@/data/mockRoutes";
+import { statsApi } from "@/lib/api";
 
 const Landing = () => {
   const featured = mockRoutes[0];
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isPride = mounted && theme === "pride";
+
+  const { data: stats } = useQuery({ queryKey: ["stats"], queryFn: statsApi.get, staleTime: 5 * 60_000 });
 
   return (
     <div className="min-h-screen bg-background">
+      {isPride && <Fireworks key="pride-fireworks" />}
       {/* Top bar */}
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur" style={{ borderColor: "hsl(var(--hairline))" }}>
         <div className="container flex h-16 items-center justify-between">
@@ -33,7 +45,6 @@ const Landing = () => {
       <section className="relative overflow-hidden bg-gradient-soft">
         <div className="container grid gap-12 py-20 md:grid-cols-12 md:py-28">
           <div className="md:col-span-6">
-            <div className="chip mb-6"><span className="h-1.5 w-1.5 rounded-full bg-primary" /> projekt zaliczeniowy PAI · UJ 2025/2026</div>
             <h1 className="font-display text-5xl font-medium leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
               Trasy, które<br/>
               <span className="italic text-primary">warto zapamiętać</span>.
@@ -50,7 +61,7 @@ const Landing = () => {
               </Button>
             </div>
             <dl className="mt-12 grid grid-cols-3 gap-6 border-t pt-6" style={{ borderColor: "hsl(var(--hairline))" }}>
-              <Stat n="3" label="zasoby API" />
+              <Stat n={stats ? `${stats.userCount}+` : "…"} label="rosnąca społeczność" />
               <Stat n="7+" label="elementów dodatkowych" />
               <Stat n="∞" label="możliwych tras" />
             </dl>
@@ -80,6 +91,39 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* Postcard */}
+      <section className="relative h-[520px] overflow-hidden bg-stone-800">
+        <img
+          src="https://images.unsplash.com/photo-1693562709081-ec3a41d10544?auto=format&fit=crop&w=1920&q=80"
+          alt="Grupa ludzi stojących na szczycie górskim"
+          className="absolute inset-0 h-full w-full object-cover object-center"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+        />
+        {/* Podwójny gradient — ciemniejszy dół i lewa krawędź */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
+        <div className="container absolute inset-x-0 bottom-0 flex items-end justify-between gap-8 pb-14">
+          {/* Lewa strona — cytat + CTA */}
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-white/60">Odkryj szlak</p>
+            <blockquote className="mt-3 max-w-lg">
+              <p className="font-display text-3xl font-medium italic leading-snug text-white md:text-4xl lg:text-5xl">
+                Każda trasa zaczyna się<br />od pierwszego kroku.
+              </p>
+            </blockquote>
+            <div className="mt-6">
+              <Button variant="hero" size="sm" asChild>
+                <Link to="/register">Zaplanuj swoją trasę <ArrowRight className="h-3.5 w-3.5" /></Link>
+              </Button>
+            </div>
+          </div>
+          {/* Prawa strona — hasło */}
+          <p className="hidden max-w-[220px] text-right font-display text-xl font-medium italic leading-snug text-white/80 md:block">
+            Dziel się wspomnieniami,<br />by zostały z&nbsp;Tobą na zawsze.
+          </p>
+        </div>
+      </section>
+
       {/* Features */}
       <section id="features" className="container py-20 md:py-28">
         <div className="grid gap-2 md:grid-cols-12">
@@ -89,9 +133,6 @@ const Landing = () => {
               Wszystko, czego potrzebujesz w jednym miejscu.
             </h2>
           </div>
-          <p className="md:col-span-6 md:col-start-7 text-muted-foreground self-end">
-            Stack: ASP.NET Core 8 + PostgreSQL + React + Leaflet.js. Świadomie dobrane technologie, świadomie zaprojektowany interfejs.
-          </p>
         </div>
 
         <div className="mt-12 grid gap-px overflow-hidden rounded-xl border bg-hairline md:grid-cols-3" style={{ borderColor: "hsl(var(--hairline))" }}>
@@ -123,7 +164,14 @@ const Landing = () => {
       <footer className="border-t" style={{ borderColor: "hsl(var(--hairline))" }}>
         <div className="container flex flex-col items-start justify-between gap-4 py-8 text-xs text-muted-foreground md:flex-row md:items-center">
           <div className="flex items-center gap-3"><Logo /><span>· UJ FAIS · PAI 2025/2026</span></div>
-          <div>© Natalia Borsuk · Projekt zaliczeniowy</div>
+          <a
+            href="https://unsplash.com/photos/a-group-of-people-standing-on-top-of-a-mountain-XX1h3Zk0wPA"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-foreground"
+          >
+            Zdjęcie: Unsplash
+          </a>
         </div>
       </footer>
     </div>
