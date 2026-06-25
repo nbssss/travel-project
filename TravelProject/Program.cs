@@ -87,6 +87,7 @@ namespace TravelProject
             RegisterUser.MapEndpoint(app);
             LoginUser.MapEndpoint(app);
             CreateRoute.MapEndpoint(app);
+            DeleteRoute.MapEndpoint(app);
             UpsertRoutePoints.MapEndpoint(app);
             GetMyRoutes.MapEndpoint(app);
             GetRecentRoutes.MapEndpoint(app);
