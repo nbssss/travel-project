@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
-import { NewRouteButton } from "@/components/NewRouteButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { RouteMap } from "@/components/RouteMap";
 import { mockRoutes } from "@/data/mockRoutes";
@@ -53,7 +52,6 @@ const AuthPage = ({ mode }: Props) => {
         <header className="flex items-center justify-between p-6">
           <Logo />
           <div className="flex items-center gap-2">
-            <NewRouteButton />
             <ThemeToggle />
           </div>
         </header>
