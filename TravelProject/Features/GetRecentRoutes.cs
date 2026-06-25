@@ -13,7 +13,7 @@ namespace TravelProject.Features
                           ?? httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
                 var routes = await db.Routes
-                    .Where(r => r.IsPublic)
+                    .Where(r => r.IsPublic && (userId == null || r.OwnerId != userId))
                     .OrderByDescending(r => r.CreatedAt)
                     .Take(10)
                     .Include(r => r.Owner)
