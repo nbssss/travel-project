@@ -176,6 +176,8 @@ export const routesApi = {
     request<RouteDto[]>("/routes/liked"),
   bySlug: (slug: string) =>
     request<RouteDetailDto>(`/routes/${slug}`),
+  remove: (id: string) =>
+    request<void>(`/routes/${id}`, { method: "DELETE" }),
   like: (id: string) =>
     request<LikeResponse>(`/routes/${id}/like`, { method: "POST" }),
   unlike: (id: string) =>

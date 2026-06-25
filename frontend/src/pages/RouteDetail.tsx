@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Edit3, Heart, ImagePlus, Mountain, Route as RouteIcon, Timer, MapPin, X } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Edit3, Heart, ImagePlus, Mountain, Route as RouteIcon, Timer, MapPin, Trash2, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
@@ -17,6 +17,7 @@ const RouteDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const { userName } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: route, isLoading, isError } = useQuery({
     queryKey: ["route", slug],
@@ -29,6 +30,7 @@ const RouteDetail = () => {
   const [photos, setPhotos] = useState<RoutePhotoDto[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -64,6 +66,23 @@ const RouteDetail = () => {
       toast.success("Zdjęcie usunięte.");
     } catch {
       toast.error("Nie udało się usunąć zdjęcia.");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!route) return;
+    if (!window.confirm(`Czy na pewno usunąć trasę „${route.title}"? Tej operacji nie można cofnąć.`)) return;
+    setDeleting(true);
+    try {
+      await routesApi.remove(route.id);
+      queryClient.invalidateQueries({ queryKey: ["my-routes"] });
+      queryClient.invalidateQueries({ queryKey: ["recent-routes"] });
+      queryClient.invalidateQueries({ queryKey: ["liked-routes"] });
+      toast.success("Trasa usunięta.");
+      navigate("/app");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Nie udało się usunąć trasy.");
+      setDeleting(false);
     }
   };
 
@@ -154,11 +173,19 @@ const RouteDetail = () => {
                 <span className="data-num">{likesCount}</span>
               </button>
               {isOwner && (
-                <Button variant="default" size="sm" asChild>
-                  <Link to={`/app/route/${route.slug}/edit`}>
-                    <Edit3 className="h-4 w-4" /> Modyfikuj
-                  </Link>
-                </Button>
+                <>
+                  <Button variant="default" size="sm" asChild>
+                    <Link to={`/app/route/${route.slug}/edit`}>
+                      <Edit3 className="h-4 w-4" /> Modyfikuj
+                    </Link>
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleDelete} disabled={deleting}>
+                    {deleting
+                      ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-destructive border-t-transparent" />
+                      : <Trash2 className="h-4 w-4 text-destructive" />}
+                    <span className="text-destructive">Usuń</span>
+                  </Button>
+                </>
               )}
             </div>
           </div>
