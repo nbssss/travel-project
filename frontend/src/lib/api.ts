@@ -95,6 +95,8 @@ export const authApi = {
 
 // --- Routes API ---
 
+export type Difficulty = "easy" | "moderate" | "hard";
+
 export interface CreateRouteDto {
   title: string;
   description?: string;
@@ -120,7 +122,7 @@ export interface RouteDto {
   slug: string;
   title: string;
   region?: string;
-  difficulty: string;
+  difficulty: Difficulty;
   distanceKm: number;
   ascentM: number;
   durationH: number;
