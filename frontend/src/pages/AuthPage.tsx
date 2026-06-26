@@ -110,9 +110,6 @@ const AuthPage = ({ mode }: Props) => {
           </div>
         </div>
 
-        <footer className="px-6 py-4 text-[11px] text-muted-foreground">
-          UJ FAIS · PAI 2025/2026 · projekt UI
-        </footer>
       </div>
 
       {/* Visual side */}
