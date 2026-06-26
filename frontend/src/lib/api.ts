@@ -107,6 +107,14 @@ export interface RoutePointInput {
   note?: string;
 }
 
+/** Metryki policzone na froncie z geometrii BRoutera (autorytatywne dla zapisu). */
+export interface RouteMetricsInput {
+  distanceKm?: number;
+  ascentM?: number;
+  descentM?: number;
+  durationH?: number;
+}
+
 export interface RouteDto {
   id: string;
   slug: string;
@@ -115,6 +123,7 @@ export interface RouteDto {
   difficulty: Difficulty;
   distanceKm: number;
   ascentM: number;
+  descentM?: number;
   durationH: number;
   isPublic: boolean;
   updatedAt: string;
@@ -151,8 +160,8 @@ export const routesApi = {
     request<RouteDto>("/routes", { method: "POST", body: JSON.stringify(body) }),
   update: (id: string, body: CreateRouteDto) =>
     request<RouteDto>(`/routes/${id}`, { method: "PUT", body: JSON.stringify(body) }),
-  upsertPoints: (id: string, points: RoutePointInput[]) =>
-    request<RouteDto>(`/routes/${id}/points`, { method: "PUT", body: JSON.stringify({ points }) }),
+  upsertPoints: (id: string, points: RoutePointInput[], metrics?: RouteMetricsInput) =>
+    request<RouteDto>(`/routes/${id}/points`, { method: "PUT", body: JSON.stringify({ points, ...metrics }) }),
   mine: () =>
     request<RouteDto[]>("/routes/mine"),
   recent: () =>
