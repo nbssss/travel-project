@@ -1,10 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Heart, Mountain, Route as RouteIcon, Timer } from "lucide-react";
 import type { RouteDto } from "@/lib/api";
 import { routesApi } from "@/lib/api";
-import type { POI } from "@/data/mockRoutes";
 import { DifficultyBadge } from "./DifficultyBadge";
 import { RouteMap } from "./RouteMap";
 
@@ -12,25 +10,8 @@ export function RouteCard({ route }: { route: RouteDto }) {
     const [liked, setLiked] = useState(route.isLikedByMe ?? false);
     const [count, setCount] = useState(route.likesCount ?? 0);
 
-    // Mini podgląd trasy w miniaturce — dociągamy punkty trasy (ten sam klucz cache co strona szczegółów).
-    const { data: detail } = useQuery({
-        queryKey: ["route", route.slug],
-        queryFn: () => routesApi.bySlug(route.slug),
-    });
-
-    const preview = useMemo(() => {
-        const pts = detail?.points ?? [];
-        return {
-            path: pts.map((p): [number, number] => [p.lat, p.lng]),
-            pois: pts.map((p) => ({
-                kind: p.kind as POI["kind"],
-                coords: [p.lat, p.lng] as [number, number],
-                name: p.name ?? "",
-                elevation: p.elevation,
-                note: p.note,
-            })),
-        };
-    }, [detail]);
+    // Mini podgląd trasy w miniaturce — z lekkiej geometrii zwracanej przez endpoint listy (bez dodatkowego zapytania).
+    const preview = useMemo(() => ({ path: route.previewPath ?? [] }), [route.previewPath]);
 
     const handleLike = async (e: React.MouseEvent) => {
         e.preventDefault();
