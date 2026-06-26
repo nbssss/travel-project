@@ -15,6 +15,8 @@ const Landing = () => {
   const featured = mockRoutes[0];
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  // flaga mounted zapobiega miganiu motywu (fajerwerki) na pierwszym renderze
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
   const isPride = mounted && theme === "pride";
 

@@ -5,7 +5,6 @@ import { Camera } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { RouteCard } from "@/components/RouteCard";
-import { Button } from "@/components/ui/button";
 import { routesApi, usersApi, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
