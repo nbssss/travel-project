@@ -18,7 +18,16 @@ namespace TravelProject.Features
             string? Note
         );
 
-        public record UpsertPointsRequest(List<RoutePointRequest> Points);
+        // Metryki (DistanceKm/AscentM/DescentM/DurationH) są opcjonalne: gdy przekazane
+        // (policzone na froncie z gęstej geometrii BRoutera) traktujemy je jako autorytatywne;
+        // gdy ich brak — backend przelicza z punktów (fallback po linii prostej).
+        public record UpsertPointsRequest(
+            List<RoutePointRequest> Points,
+            double? DistanceKm = null,
+            int? AscentM = null,
+            int? DescentM = null,
+            double? DurationH = null
+        );
 
         public class Validator : AbstractValidator<UpsertPointsRequest>
         {
@@ -74,11 +83,12 @@ namespace TravelProject.Features
                 db.RoutePoints.AddRange(newPoints);
                 route.Points = newPoints;
 
-                // Przelicz metryki
+                // Metryki: użyj wartości z frontu (BRouter) gdy podane, inaczej przelicz z punktów.
                 var ordered = newPoints.OrderBy(p => p.Order).ToList();
-                route.DistanceKm = CalculateDistanceKm(ordered);
-                route.AscentM = CalculateAscentM(ordered);
-                route.DurationH = Math.Round(route.DistanceKm / 4.0 + route.AscentM / 600.0, 1);
+                route.DistanceKm = req.DistanceKm ?? CalculateDistanceKm(ordered);
+                route.AscentM = req.AscentM ?? CalculateAscentM(ordered);
+                route.DescentM = req.DescentM ?? CalculateDescentM(ordered);
+                route.DurationH = req.DurationH ?? Math.Round(route.DistanceKm / 4.0 + route.AscentM / 600.0, 1);
                 route.UpdatedAt = DateTime.UtcNow;
 
                 await db.SaveChangesAsync();
@@ -109,6 +119,20 @@ namespace TravelProject.Features
                 }
             }
             return ascent;
+        }
+
+        private static int CalculateDescentM(List<RoutePoint> pts)
+        {
+            int descent = 0;
+            for (int i = 1; i < pts.Count; i++)
+            {
+                if (pts[i].Elevation.HasValue && pts[i - 1].Elevation.HasValue)
+                {
+                    var diff = pts[i].Elevation!.Value - pts[i - 1].Elevation!.Value;
+                    if (diff < 0) descent += (int)(-diff);
+                }
+            }
+            return descent;
         }
 
         private static double Haversine(double lat1, double lng1, double lat2, double lng2)

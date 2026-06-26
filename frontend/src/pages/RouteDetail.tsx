@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Download, Edit3, Heart, Mountain, Route as RouteIcon, Timer, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, Edit3, Heart, Mountain, Route as RouteIcon, Timer, TrendingDown, Trash2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { RouteMap } from "@/components/RouteMap";
+import { ElevationProfile } from "@/components/ElevationProfile";
 import { Button } from "@/components/ui/button";
 import { DifficultyBadge } from "@/components/DifficultyBadge";
 import { routesApi, ApiError } from "@/lib/api";
+import { snapToTrails, type RouteMetrics } from "@/lib/routing";
 import { useAuth } from "@/lib/auth";
 import { poiKindLabel } from "@/data/mockRoutes";
 
@@ -28,6 +30,18 @@ const RouteDetail = () => {
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [syncedRoute, setSyncedRoute] = useState<typeof route>(undefined);
+  const [geometry, setGeometry] = useState<RouteMetrics | null>(null);
+
+  // Geometria trasy (BRouter) liczona raz na poziomie strony — zasila mapę i profil.
+  useEffect(() => {
+    const pts = route?.points ?? [];
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (pts.length < 2) { setGeometry(null); return; }
+    const controller = new AbortController();
+    snapToTrails(pts.map((p) => [p.lat, p.lng] as [number, number]), "hiking-mountain", controller.signal)
+      .then(setGeometry);
+    return () => controller.abort();
+  }, [route]);
 
   // Synchronizacja danych z serwera do stanu lokalnego (dla optymistycznych polubień)
   // — wzorzec "set-during-render" zamiast useEffect.
@@ -110,7 +124,7 @@ const RouteDetail = () => {
   }
 
   const mapRoute = {
-    path: route.points.map((p): [number, number] => [p.lat, p.lng]),
+    path: geometry?.path ?? route.points.map((p): [number, number] => [p.lat, p.lng]),
     pois: route.points.map((p) => ({
       kind: p.kind as keyof typeof poiKindLabel,
       coords: [p.lat, p.lng] as [number, number],
@@ -188,9 +202,10 @@ const RouteDetail = () => {
 
       <div className="container max-w-7xl py-8">
         {/* Stats row */}
-        <div className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border bg-hairline" style={{ borderColor: "hsl(var(--hairline))" }}>
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-hairline sm:grid-cols-4" style={{ borderColor: "hsl(var(--hairline))" }}>
           <Stat icon={<RouteIcon className="h-4 w-4" />} value={route.distanceKm} unit="km" label="Dystans" />
           <Stat icon={<Mountain className="h-4 w-4" />} value={route.ascentM} unit="m ↑" label="Suma podejść" />
+          <Stat icon={<TrendingDown className="h-4 w-4" />} value={route.descentM ?? 0} unit="m ↓" label="Suma zejść" />
           <Stat icon={<Timer className="h-4 w-4" />} value={route.durationH} unit="h" label="Szac. czas" />
         </div>
 
@@ -199,9 +214,20 @@ const RouteDetail = () => {
           <div className="lg:col-span-2">
             <div className="overflow-hidden rounded-xl border shadow-soft" style={{ borderColor: "hsl(var(--hairline))" }}>
               <div className="h-[520px]">
-                <RouteMap route={mapRoute} height="100%" snap />
+                <RouteMap route={mapRoute} height="100%" />
               </div>
             </div>
+
+            {/* Elevation profile */}
+            {geometry && geometry.profile.length > 1 && (
+              <div className="mt-6 rounded-xl border p-4" style={{ borderColor: "hsl(var(--hairline))" }}>
+                <div className="mb-1 flex items-center justify-between px-1">
+                  <h2 className="font-display text-base font-medium">Profil wysokościowy</h2>
+                  <span className="text-[11px] text-muted-foreground">↑ {route.ascentM} m · ↓ {route.descentM ?? 0} m</span>
+                </div>
+                <ElevationProfile data={geometry.profile} height={160} />
+              </div>
+            )}
 
             {(route.description || (route.tags?.length ?? 0) > 0) && (
               <div className="mt-6 rounded-xl border p-6" style={{ borderColor: "hsl(var(--hairline))" }}>
