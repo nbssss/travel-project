@@ -49,7 +49,13 @@ namespace TravelProject.Features
             IsLikedByMe = isLikedByMe,
             Points = r.Points.Select(p => new
             {
-                p.Order, p.Lat, p.Lng, p.Elevation, p.Kind, p.Name, p.Note,
+                p.Order,
+                p.Lat,
+                p.Lng,
+                p.Elevation,
+                p.Kind,
+                p.Name,
+                p.Note,
             }),
         };
     }

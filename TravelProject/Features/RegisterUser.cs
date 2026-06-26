@@ -9,7 +9,7 @@ namespace TravelProject.Features
         public static void MapEndpoint(IEndpointRouteBuilder app)
         {
             app.MapPost("register", async (
-                RegisterUserRequest registerUserRequest, 
+                RegisterUserRequest registerUserRequest,
                 ApplicationDbContext dbContext,
                 UserManager<ApplicationUser> userManager) =>
             {

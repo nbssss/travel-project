@@ -12,13 +12,13 @@ namespace TravelProject.Features
         public static void MapEndpoint(IEndpointRouteBuilder app)
         {
             app.MapPost("login", async (
-                LoginUserRequest loginUserRequest, 
+                LoginUserRequest loginUserRequest,
                 UserManager<ApplicationUser> userManager,
-                IConfiguration configuration ) =>
+                IConfiguration configuration) =>
             {
                 var user = await userManager.FindByNameAsync(loginUserRequest.UserName);
 
-                if (user is null ||  !await userManager.CheckPasswordAsync(user, loginUserRequest.Password))
+                if (user is null || !await userManager.CheckPasswordAsync(user, loginUserRequest.Password))
                 {
                     return Results.Unauthorized();
                 }

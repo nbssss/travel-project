@@ -18,9 +18,9 @@ namespace TravelProject.Features
 
                 return Results.Ok(new
                 {
-                    id        = user.Id,
-                    userName  = user.UserName,
-                    email     = user.Email,
+                    id = user.Id,
+                    userName = user.UserName,
+                    email = user.Email,
                     avatarUrl = user.AvatarUrl,
                 });
             })
