@@ -1,5 +1,7 @@
 using System.Security.Claims;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using TravelProject.Infrastructure;
 using TravelProject.Models;
 
 namespace TravelProject.Features
@@ -17,6 +19,22 @@ namespace TravelProject.Features
         );
 
         public record UpsertPointsRequest(List<RoutePointRequest> Points);
+
+        public class Validator : AbstractValidator<UpsertPointsRequest>
+        {
+            public Validator()
+            {
+                RuleFor(x => x.Points).NotNull().WithMessage("Lista punktów jest wymagana.");
+
+                RuleForEach(x => x.Points).ChildRules(p =>
+                {
+                    p.RuleFor(pt => pt.Order).GreaterThanOrEqualTo(0).WithMessage("Order musi być >= 0.");
+                    p.RuleFor(pt => pt.Lat).InclusiveBetween(-90, 90).WithMessage("Szerokość geograficzna poza zakresem.");
+                    p.RuleFor(pt => pt.Lng).InclusiveBetween(-180, 180).WithMessage("Długość geograficzna poza zakresem.");
+                    p.RuleFor(pt => pt.Kind).NotEmpty().WithMessage("Rodzaj punktu (kind) jest wymagany.");
+                });
+            }
+        }
 
         public static void MapEndpoint(IEndpointRouteBuilder app)
         {
@@ -67,7 +85,8 @@ namespace TravelProject.Features
 
                 return Results.Ok(CreateRoute.ToDto(route));
             })
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .AddEndpointFilter<ValidationFilter<UpsertPointsRequest>>();
         }
 
         private static double CalculateDistanceKm(List<RoutePoint> pts)
