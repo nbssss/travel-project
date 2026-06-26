@@ -11,11 +11,23 @@ import { RouteMap } from "@/components/RouteMap";
 import { mockRoutes } from "@/data/mockRoutes";
 import { authApi, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { z } from "zod";
 import type { FormEvent, ReactNode } from "react";
 
 type Props = {
   mode: "login" | "register";
 };
+
+const loginSchema = z.object({
+  userName: z.string().min(1, "Nazwa użytkownika jest wymagana."),
+  password: z.string().min(1, "Hasło jest wymagane."),
+});
+
+const registerSchema = z.object({
+  userName: z.string().min(3, "Nazwa użytkownika musi mieć min. 3 znaki.").max(50, "Maks. 50 znaków."),
+  email: z.email("Niepoprawny format email."),
+  password: z.string().min(8, "Hasło musi mieć min. 8 znaków."),
+});
 
 const AuthPage = ({ mode }: Props) => {
   const navigate = useNavigate();
@@ -26,15 +38,30 @@ const AuthPage = ({ mode }: Props) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    const data = isLogin ? { userName, password } : { userName, email, password };
+    const schema = isLogin ? loginSchema : registerSchema;
+    const result = schema.safeParse(data);
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      for (const issue of result.error.issues) {
+        const key = issue.path[0];
+        if (typeof key === "string" && !fieldErrors[key]) fieldErrors[key] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({});
+
     setLoading(true);
     try {
       if (!isLogin) {
         await authApi.register({ userName, email, password });
       }
-      // logujemy po nazwie użytkownika (po rejestracji — tymi samymi danymi)
       const { accessToken } = await authApi.login({ userName, password });
       login(accessToken, userName);
       navigate("/app");
@@ -69,28 +96,29 @@ const AuthPage = ({ mode }: Props) => {
             </p>
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-              <Field label="Nazwa użytkownika">
+              <Field label="Nazwa użytkownika" error={errors.userName}>
                 <Input
                   type="text"
-                  required
                   value={userName}
                   onChange={(e) => setUserName(e.target.value)}
                 />
               </Field>
               {!isLogin && (
-                <Field label="Email">
+                <Field label="Email" error={errors.email}>
                   <Input
                     type="email"
-                    required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </Field>
               )}
-              <Field label="Hasło" hint={isLogin ? <Link to="#" className="text-xs text-muted-foreground hover:text-foreground">Zapomniałeś?</Link> : undefined}>
+              <Field
+                label="Hasło"
+                error={errors.password}
+                hint={isLogin ? <Link to="#" className="text-xs text-muted-foreground hover:text-foreground">Zapomniałeś?</Link> : undefined}
+              >
                 <Input
                   type="password"
-                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -128,7 +156,7 @@ const AuthPage = ({ mode }: Props) => {
   );
 };
 
-function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: ReactNode }) {
+function Field({ label, children, hint, error }: { label: string; children: ReactNode; hint?: ReactNode; error?: string }) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
@@ -136,6 +164,7 @@ function Field({ label, children, hint }: { label: string; children: ReactNode; 
         {hint}
       </div>
       {children}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
 }
