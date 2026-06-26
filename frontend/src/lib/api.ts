@@ -64,20 +64,10 @@ export interface UserProfile {
   id: string;
   userName: string;
   email: string;
-  avatarUrl: string | null;
 }
 
 export const usersApi = {
   profile: () => request<UserProfile>("/users/me"),
-  uploadAvatar: (file: File) => {
-    const form = new FormData();
-    form.append("file", file);
-    return request<{ avatarUrl: string }>("/users/avatar", {
-      method: "POST",
-      body: form,
-      // nie ustawiamy Content-Type — przeglądarka sama doda boundary dla multipart
-    });
-  },
 };
 
 export const authApi = {
