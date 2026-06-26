@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Edit3, Heart, ImagePlus, Mountain, Route as RouteIcon, Timer, MapPin, X } from "lucide-react";
+import { ArrowLeft, Edit3, Heart, ImagePlus, Mountain, Route as RouteIcon, Timer, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
@@ -167,11 +167,10 @@ const RouteDetail = () => {
 
       <div className="container max-w-7xl py-8">
         {/* Stats row */}
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-hairline md:grid-cols-4" style={{ borderColor: "hsl(var(--hairline))" }}>
+        <div className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border bg-hairline" style={{ borderColor: "hsl(var(--hairline))" }}>
           <Stat icon={<RouteIcon className="h-4 w-4" />} value={route.distanceKm} unit="km" label="Dystans" />
           <Stat icon={<Mountain className="h-4 w-4" />} value={route.ascentM} unit="m ↑" label="Suma podejść" />
           <Stat icon={<Timer className="h-4 w-4" />} value={route.durationH} unit="h" label="Szac. czas" />
-          <Stat icon={<MapPin className="h-4 w-4" />} value={route.points.length} unit="" label="Punktów POI" />
         </div>
 
         {/* Map + sidebar */}
