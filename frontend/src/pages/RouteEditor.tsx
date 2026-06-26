@@ -281,9 +281,7 @@ const RouteEditor = () => {
           <RouteMap
             route={isEmpty ? { path: [], pois: [] } : mapRoute}
             onMapClick={handleMapClick}
-            onNoRoute={() => toast.error("Brak drogi lub szlaku w tym miejscu.")}
             onPoiMove={handlePoiMove}
-            transportMode={transport}
             zoomControl={false}
             height="100%"
             flyTo={flyTo}

@@ -14,21 +14,11 @@ type OsmWay = { nodes: [number, number][]; highway: string };
 const PEDESTRIAN_HW = /^(footway|path|track|bridleway|cycleway|pedestrian|steps)$/;
 const ROAD_HW       = /^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|service|living_street|road)$/;
 
-const SNAP_HW: Record<"hiking" | "cycling" | "car", RegExp> = {
-    hiking:  /^(footway|path|track|bridleway|cycleway|pedestrian|steps|residential|service|unclassified|tertiary)$/,
-    cycling: /^(cycleway|path|track|residential|service|unclassified|tertiary|secondary|primary|living_street)$/,
-    car:     /^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|service|living_street|road)$/,
-};
-
 type Props = {
     route: MapRoute;
     height?: string;
     interactive?: boolean;
-    /** Transport mode — controls which way types are used for click snapping */
-    transportMode?: "hiking" | "cycling" | "car";
     onMapClick?: (latlng: [number, number]) => void;
-    /** Called when user clicks but no suitable road/trail is found nearby */
-    onNoRoute?: () => void;
     onPoiMove?: (index: number, latlng: [number, number]) => void;
     className?: string;
     zoomControl?: boolean;
@@ -41,9 +31,7 @@ export function RouteMap({
     route,
     height = "100%",
     interactive = true,
-    transportMode,
     onMapClick,
-    onNoRoute,
     onPoiMove,
     className,
     zoomControl,
@@ -54,13 +42,7 @@ export function RouteMap({
     const mapRef = useRef<L.Map | null>(null);
     const osmWaysRef  = useRef<OsmWay[]>([]);
     const osmLoadedRef = useRef(false);
-    const transportModeRef = useRef<"hiking" | "cycling" | "car">("hiking");
     const [routedPath, setRoutedPath] = useState<[number, number][] | null>(null);
-
-    // Aktualizujemy ref po renderze (czytany tylko w asynchronicznych callbackach/efektach)
-    useEffect(() => {
-        transportModeRef.current = transportMode ?? "hiking";
-    });
 
     // ── Map init ─────────────────────────────────────────────────────────────
     useEffect(() => {
@@ -328,39 +310,18 @@ export function RouteMap({
         map.flyTo(flyTo, 13, { duration: 1 });
     }, [flyTo]);
 
-    // ── Click handler — snaps from cached OSM ways ────────────────────────────
+    // ── Click handler — dodaje punkt dokładnie w miejscu kliknięcia ───────────
     useEffect(() => {
         const map = mapRef.current;
         if (!map || !onMapClick) return;
 
         const handler = (e: L.LeafletMouseEvent) => {
-            const { lat, lng } = e.latlng;
-            const snapRe = SNAP_HW[transportModeRef.current];
-
-            // Find nearest node on an appropriate cached way
-            let nearest: [number, number] | null = null;
-            let nearestD = Infinity;
-            for (const way of osmWaysRef.current) {
-                if (!snapRe.test(way.highway)) continue;
-                for (const [wLat, wLng] of way.nodes) {
-                    const d = (wLat - lat) ** 2 + (wLng - lng) ** 2;
-                    if (d < nearestD) { nearestD = d; nearest = [wLat, wLng]; }
-                }
-            }
-
-            if (nearest) {
-                onMapClick(nearest);
-            } else if (!osmLoadedRef.current) {
-                // Ways not loaded yet (zoom < 13 or still fetching) — accept raw
-                onMapClick([lat, lng]);
-            } else {
-                onNoRoute?.();
-            }
+            onMapClick([e.latlng.lat, e.latlng.lng]);
         };
 
         map.on("click", handler);
         return () => { map.off("click", handler); };
-    }, [onMapClick, onNoRoute]);
+    }, [onMapClick]);
 
     return <div ref={ref} className={className} style={{ height, width: "100%" }} />;
 }
