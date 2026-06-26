@@ -57,8 +57,10 @@ export function RouteMap({
     const transportModeRef = useRef<"hiking" | "cycling" | "car">("hiking");
     const [routedPath, setRoutedPath] = useState<[number, number][] | null>(null);
 
-    // Keep transport mode ref in sync on every render
-    transportModeRef.current = transportMode ?? "hiking";
+    // Aktualizujemy ref po renderze (czytany tylko w asynchronicznych callbackach/efektach)
+    useEffect(() => {
+        transportModeRef.current = transportMode ?? "hiking";
+    });
 
     // ── Map init ─────────────────────────────────────────────────────────────
     useEffect(() => {
@@ -184,7 +186,6 @@ export function RouteMap({
             roadLayer?.remove();
             osmWaysRef.current = [];
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isEditor]);
 
     // ── Peak markers ─────────────────────────────────────────────────────────
@@ -239,21 +240,20 @@ export function RouteMap({
             abortCtrl?.abort();
             peakLayers.forEach(l => map.removeLayer(l));
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // ── BRouter snap for RouteDetail display ─────────────────────────────────
     useEffect(() => {
-        if (!snap) { setRoutedPath(null); return; }
         const pois = route.pois ?? [];
-        if (pois.length < 2) { setRoutedPath(null); return; }
+        // Reset gdy wyłączone / za mało punktów; dalej async synchronizacja z BRouter (zewnętrzny system)
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (!snap || pois.length < 2) { setRoutedPath(null); return; }
         const controller = new AbortController();
         const timer = setTimeout(() => {
             snapToTrails(pois.map(p => p.coords), "hiking-mountain", controller.signal)
                 .then(result => setRoutedPath(result?.path ?? null));
         }, 500);
         return () => { clearTimeout(timer); controller.abort(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [route.pois, snap]);
 
     // ── Route markers + path ─────────────────────────────────────────────────

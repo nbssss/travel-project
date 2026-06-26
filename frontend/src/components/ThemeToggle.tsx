@@ -8,6 +8,8 @@ const CYCLE: Record<string, string> = { light: "dark", dark: "pride", pride: "li
 export function ThemeToggle() {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
+    // flaga mounted zapobiega niespójności motywu na pierwszym renderze; efekt to właściwe miejsce
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => setMounted(true), []);
 
     if (!mounted) return <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" />;

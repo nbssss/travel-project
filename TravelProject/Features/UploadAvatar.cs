@@ -5,7 +5,7 @@ namespace TravelProject.Features
     public class UploadAvatar
     {
         private static readonly string[] AllowedTypes = ["image/jpeg", "image/png", "image/webp"];
-        private static readonly string[] AllowedExts  = [".jpg", ".jpeg", ".png", ".webp"];
+        private static readonly string[] AllowedExts = [".jpg", ".jpeg", ".png", ".webp"];
         private const long MaxBytes = 2 * 1024 * 1024; // 2 MB
 
         public static void MapEndpoint(IEndpointRouteBuilder app)

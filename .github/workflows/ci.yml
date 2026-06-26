@@ -8,7 +8,7 @@ on:
 
 jobs:
   backend:
-    name: Backend - build & test
+    name: Backend - lint, build & test
     runs-on: ubuntu-latest
 
     steps:
@@ -21,6 +21,9 @@ jobs:
 
       - name: Restore
         run: dotnet restore
+
+      - name: Lint
+        run: dotnet format TravelProject.sln --verify-no-changes --no-restore
 
       - name: Build
         run: dotnet build --no-restore
@@ -54,6 +57,10 @@ jobs:
 
       - name: Install
         run: npm ci
+        working-directory: frontend
+
+      - name: Lint
+        run: npm run lint
         working-directory: frontend
 
       - name: Build

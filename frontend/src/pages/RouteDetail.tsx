@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Download, Edit3, Heart, ImagePlus, Mountain, Route as RouteIcon, Timer, MapPin, Trash2, X } from "lucide-react";
+import { ArrowLeft, Download, Edit3, Heart, Mountain, Route as RouteIcon, Timer, Trash2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
@@ -27,13 +27,15 @@ const RouteDetail = () => {
   const [likesCount, setLikesCount] = useState(0);
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [syncedRoute, setSyncedRoute] = useState<typeof route>(undefined);
 
-  useEffect(() => {
-    if (route) {
-      setLiked(route.isLikedByMe ?? false);
-      setLikesCount(route.likesCount ?? 0);
-    }
-  }, [route]);
+  // Synchronizacja danych z serwera do stanu lokalnego (dla optymistycznych polubień)
+  // — wzorzec "set-during-render" zamiast useEffect.
+  if (route && route !== syncedRoute) {
+    setSyncedRoute(route);
+    setLiked(route.isLikedByMe ?? false);
+    setLikesCount(route.likesCount ?? 0);
+  }
 
   const handleDelete = async () => {
     if (!route) return;

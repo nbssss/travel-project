@@ -103,11 +103,13 @@ const RouteEditor = () => {
   });
 
   const [route, setRoute] = useState<Route>({ ...emptyRoute, pois: [], path: [] });
+  const [syncedExisting, setSyncedExisting] = useState<typeof existing>(undefined);
 
-  // Wypełnij formularz danymi z API przy wejściu w tryb edycji
-  useEffect(() => {
-    if (existing) setRoute(dtoToEditorRoute(existing));
-  }, [existing]);
+  // Wypełnij formularz danymi z API przy wejściu w tryb edycji — wzorzec "set-during-render"
+  if (existing && existing !== syncedExisting) {
+    setSyncedExisting(existing);
+    setRoute(dtoToEditorRoute(existing));
+  }
   const [transport, setTransport] = useState<TransportMode>("hiking");
   const [routedMetrics, setRoutedMetrics] = useState<RouteMetrics | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -118,6 +120,7 @@ const RouteEditor = () => {
 
   // ── Routing: call BRouter when POIs or transport mode changes ──────────────
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (route.pois.length < 2) { setRoutedMetrics(null); return; }
     const mode = TRANSPORT_MODES.find((m) => m.id === transport)!;
     const controller = new AbortController();
