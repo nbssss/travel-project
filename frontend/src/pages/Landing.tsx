@@ -8,12 +8,12 @@ import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { RouteMap } from "@/components/RouteMap";
 import { Fireworks } from "@/components/Fireworks";
-import { mockRoutes } from "@/data/mockRoutes";
+import { routeOfTheDay } from "@/data/mockRoutes";
 import { statsApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 const Landing = () => {
-  const featured = mockRoutes[0];
+  const featured = routeOfTheDay;
   const { theme } = useTheme();
   const navigate = useNavigate();
   const { isAuthenticated, userName, logout } = useAuth();

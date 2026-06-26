@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { RouteMap } from "@/components/RouteMap";
-import { mockRoutes } from "@/data/mockRoutes";
+import { routeOfTheDay } from "@/data/mockRoutes";
 import { authApi, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { z } from "zod";
@@ -142,13 +142,13 @@ const AuthPage = ({ mode }: Props) => {
 
       {/* Visual side */}
       <div className="relative hidden overflow-hidden border-l md:block" style={{ borderColor: "hsl(var(--hairline))" }}>
-        <RouteMap route={mockRoutes[0]} interactive={false} height="100%" />
+        <RouteMap route={routeOfTheDay} interactive={false} height="100%" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-primary/30 via-transparent to-transparent" />
         <div className="absolute bottom-8 left-8 right-8 rounded-xl border bg-card/95 p-5 shadow-lift backdrop-blur" style={{ borderColor: "hsl(var(--hairline))" }}>
           <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Trasa dnia</div>
-          <div className="mt-1 font-display text-xl font-medium">Morskie Oko → Rysy</div>
+          <div className="mt-1 font-display text-xl font-medium">{routeOfTheDay.title}</div>
           <div className="mt-3 flex gap-5 text-xs text-muted-foreground data-num">
-            <span>22.4 km</span><span>↑ 1685 m</span><span>9.5 h</span>
+            <span>{routeOfTheDay.distanceKm} km</span><span>↑ {routeOfTheDay.ascentM} m</span><span>{routeOfTheDay.durationH} h</span>
           </div>
         </div>
       </div>

@@ -103,7 +103,36 @@ const giewont: Route = {
   ],
 };
 
-export const mockRoutes: Route[] = [morskieOko, dolinaKoscieliska, giewont];
+// Pętla — startuje i kończy się w tym samym miejscu (Zakopane, u wylotu Doliny Białego).
+const petlaBialegoStrazyska: Route = {
+  id: "r4",
+  slug: "petla-bialego-strazyska",
+  title: "Pętla: Doliną Białego i Strążyską",
+  region: "Tatry Zachodnie",
+  country: "Polska",
+  difficulty: "easy",
+  distanceKm: 6.3,
+  ascentM: 140,
+  durationH: 2.3,
+  description:
+    "Spokojna pętla u podnóża Tatr — w górę Doliną Białego, grzbietem nad doliny i z powrotem Doliną Strążyską. Zaczyna i kończy się w tym samym miejscu, idealna na popołudnie.",
+  author: { name: "Natalia B.", initials: "NB" },
+  isPublic: true,
+  updatedAt: "2026-04-14",
+  tags: ["pętla", "rodzinna", "łatwa"],
+  path: routeTracks["petla-bialego-strazyska"],
+  pois: [
+    { id: "pb1", name: "Zakopane — wylot Doliny Białego", kind: "start", coords: [49.28785, 19.96457], elevation: 875, note: "Start i meta pętli." },
+    { id: "pb2", name: "Dolina Białego", kind: "viewpoint", coords: [49.27938, 19.96058], elevation: 905 },
+    { id: "pb3", name: "Grzbiet między dolinami", kind: "waypoint", coords: [49.28401, 19.94198], elevation: 925, note: "Najwyższy punkt pętli." },
+    { id: "pb4", name: "Polana Strążyska", kind: "viewpoint", coords: [49.2887, 19.948], elevation: 885 },
+  ],
+};
+
+export const mockRoutes: Route[] = [morskieOko, dolinaKoscieliska, giewont, petlaBialegoStrazyska];
+
+/** Pętla prezentowana jako „trasa dnia" na ekranie logowania/rejestracji. */
+export const routeOfTheDay = petlaBialegoStrazyska;
 
 export const getRoute = (slug: string) => mockRoutes.find(r => r.slug === slug);
 
