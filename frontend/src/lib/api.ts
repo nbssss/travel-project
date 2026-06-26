@@ -143,19 +143,12 @@ export interface RoutePointDto {
   note?: string;
 }
 
-export interface RoutePhotoDto {
-  id: string;
-  url: string;
-  order: number;
-}
-
 export interface RouteDetailDto extends RouteDto {
   description?: string;
   country?: string;
   tags: string[];
   createdAt: string;
   points: RoutePointDto[];
-  photos: RoutePhotoDto[];
 }
 
 export interface LikeResponse {
@@ -192,11 +185,4 @@ export const routesApi = {
     request<LikeResponse>(`/routes/${id}/like`, { method: "POST" }),
   unlike: (id: string) =>
     request<LikeResponse>(`/routes/${id}/like`, { method: "DELETE" }),
-  uploadPhoto: (routeId: string, file: File) => {
-    const form = new FormData();
-    form.append("file", file);
-    return request<RoutePhotoDto>(`/routes/${routeId}/photos`, { method: "POST", body: form });
-  },
-  deletePhoto: (routeId: string, photoId: string) =>
-    request<void>(`/routes/${routeId}/photos/${photoId}`, { method: "DELETE" }),
 };

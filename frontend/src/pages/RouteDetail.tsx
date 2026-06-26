@@ -1,17 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Download, Edit3, Heart, ImagePlus, Mountain, Route as RouteIcon, Timer, MapPin, Trash2, X } from "lucide-react";
+import { ArrowLeft, Download, Edit3, Heart, Mountain, Route as RouteIcon, Timer, MapPin, Trash2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { RouteMap } from "@/components/RouteMap";
 import { Button } from "@/components/ui/button";
 import { DifficultyBadge } from "@/components/DifficultyBadge";
-import { routesApi, ApiError, type RoutePhotoDto } from "@/lib/api";
+import { routesApi, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { poiKindLabel } from "@/data/mockRoutes";
-
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5134";
 
 const RouteDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -27,48 +25,15 @@ const RouteDetail = () => {
 
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
-  const [photos, setPhotos] = useState<RoutePhotoDto[]>([]);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [lightbox, setLightbox] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (route) {
       setLiked(route.isLikedByMe ?? false);
       setLikesCount(route.likesCount ?? 0);
-      setPhotos(route.photos ?? []);
     }
   }, [route]);
-
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !route) return;
-    setUploadingPhoto(true);
-    try {
-      const photo = await routesApi.uploadPhoto(route.id, file);
-      setPhotos((prev) => [...prev, photo]);
-      queryClient.invalidateQueries({ queryKey: ["route", slug] });
-      toast.success("Zdjęcie dodane!");
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Nie udało się wgrać zdjęcia.");
-    } finally {
-      setUploadingPhoto(false);
-      e.target.value = "";
-    }
-  };
-
-  const handlePhotoDelete = async (photoId: string) => {
-    if (!route) return;
-    try {
-      await routesApi.deletePhoto(route.id, photoId);
-      setPhotos((prev) => prev.filter((p) => p.id !== photoId));
-      toast.success("Zdjęcie usunięte.");
-    } catch {
-      toast.error("Nie udało się usunąć zdjęcia.");
-    }
-  };
 
   const handleDelete = async () => {
     if (!route) return;
@@ -254,64 +219,6 @@ const RouteDetail = () => {
             )}
           </div>
 
-          {/* Galeria zdjęć */}
-          {(photos.length > 0 || isOwner) && (
-            <div className="lg:col-span-2">
-              <div className="rounded-xl border p-6" style={{ borderColor: "hsl(var(--hairline))" }}>
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="font-display text-xl font-medium">Zdjęcia</h2>
-                  {isOwner && photos.length < 3 && (
-                    <Button
-                      variant="outline" size="sm"
-                      onClick={() => photoInputRef.current?.click()}
-                      disabled={uploadingPhoto}
-                    >
-                      {uploadingPhoto
-                        ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                        : <ImagePlus className="h-4 w-4" />}
-                      Dodaj zdjęcie
-                    </Button>
-                  )}
-                </div>
-                <input
-                  ref={photoInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="sr-only"
-                  onChange={handlePhotoUpload}
-                />
-
-                {photos.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-muted-foreground">
-                    Brak zdjęć. Kliknij „Dodaj zdjęcie", aby dodać pierwsze.
-                  </p>
-                ) : (
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {photos.map((photo) => (
-                      <div key={photo.id} className="group relative aspect-[4/3] overflow-hidden rounded-lg border" style={{ borderColor: "hsl(var(--hairline))" }}>
-                        <img
-                          src={`${API_URL}${photo.url}`}
-                          alt=""
-                          className="h-full w-full cursor-pointer object-cover transition-transform duration-300 group-hover:scale-105"
-                          onClick={() => setLightbox(`${API_URL}${photo.url}`)}
-                        />
-                        {isOwner && (
-                          <button
-                            onClick={() => handlePhotoDelete(photo.id)}
-                            className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/80"
-                            aria-label="Usuń zdjęcie"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
           <aside className="rounded-xl border" style={{ borderColor: "hsl(var(--hairline))" }}>
             <div className="border-b p-5" style={{ borderColor: "hsl(var(--hairline))" }}>
               <h2 className="font-display text-lg font-medium">Punkty trasy</h2>
@@ -361,26 +268,6 @@ const RouteDetail = () => {
           </aside>
         </div>
       </div>
-      {/* Lightbox */}
-      {lightbox && (
-        <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
-          onClick={() => setLightbox(null)}
-        >
-          <img
-            src={lightbox}
-            alt=""
-            className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <button
-            onClick={() => setLightbox(null)}
-            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-      )}
     </AppShell>
   );
 };

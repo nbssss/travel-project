@@ -82,8 +82,6 @@ namespace TravelProject
             GetStats.MapEndpoint(app);
             GetProfile.MapEndpoint(app);
             UploadAvatar.MapEndpoint(app);
-            UploadRoutePhoto.MapEndpoint(app);
-            DeleteRoutePhoto.MapEndpoint(app);
             RegisterUser.MapEndpoint(app);
             LoginUser.MapEndpoint(app);
             CreateRoute.MapEndpoint(app);
