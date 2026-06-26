@@ -3,6 +3,28 @@ import L from "leaflet";
 import { poiKindLabel, type POI } from "@/data/mockRoutes";
 import { snapToTrails } from "@/lib/routing";
 
+type Peak = { lat: number; lon: number; name?: string; ele?: number };
+
+function metersBetween(aLat: number, aLng: number, bLat: number, bLng: number): number {
+    const R = 6371000;
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const dLat = toRad(bLat - aLat);
+    const dLng = toRad(bLng - aLng);
+    const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+/** Najbliższy szczyt w promieniu maxM metrów (lub null). */
+function nearestPeak(peaks: Peak[], lat: number, lng: number, maxM: number): Peak | null {
+    let best: Peak | null = null;
+    let bestM = Infinity;
+    for (const p of peaks) {
+        const d = metersBetween(lat, lng, p.lat, p.lon);
+        if (d < bestM) { bestM = d; best = p; }
+    }
+    return best && bestM <= maxM ? best : null;
+}
+
 type MapRoute = {
     path?: [number, number][];
     pois?: Pick<POI, "kind" | "coords" | "name" | "elevation" | "note">[];
@@ -14,25 +36,40 @@ type OsmWay = { nodes: [number, number][]; highway: string };
 const PEDESTRIAN_HW = /^(footway|path|track|bridleway|cycleway|pedestrian|steps)$/;
 const ROAD_HW       = /^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|service|living_street|road)$/;
 
-const SNAP_HW: Record<"hiking" | "cycling" | "car", RegExp> = {
-    hiking:  /^(footway|path|track|bridleway|cycleway|pedestrian|steps|residential|service|unclassified|tertiary)$/,
-    cycling: /^(cycleway|path|track|residential|service|unclassified|tertiary|secondary|primary|living_street)$/,
-    car:     /^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|service|living_street|road)$/,
-};
+/**
+ * Najbliższy węzeł szlaku/drogi w promieniu maxM — z JUŻ wczytanego cache OSM
+ * (osmWaysRef), bez zapytania sieciowego. Dla "car" tylko drogi jezdne.
+ */
+function nearestWayNode(
+    ways: OsmWay[],
+    lat: number,
+    lng: number,
+    maxM: number,
+    transport: "hiking" | "cycling" | "car",
+): [number, number] | null {
+    let best: [number, number] | null = null;
+    let bestM = Infinity;
+    for (const w of ways) {
+        if (transport === "car" && !ROAD_HW.test(w.highway)) continue;
+        for (const [nlat, nlng] of w.nodes) {
+            const d = metersBetween(lat, lng, nlat, nlng);
+            if (d < bestM) { bestM = d; best = [nlat, nlng]; }
+        }
+    }
+    return best && bestM <= maxM ? best : null;
+}
 
 type Props = {
     route: MapRoute;
     height?: string;
     interactive?: boolean;
-    /** Transport mode — controls which way types are used for click snapping */
-    transportMode?: "hiking" | "cycling" | "car";
-    onMapClick?: (latlng: [number, number]) => void;
-    /** Called when user clicks but no suitable road/trail is found nearby */
-    onNoRoute?: () => void;
+    onMapClick?: (latlng: [number, number], meta?: { kind?: POI["kind"]; name?: string; elevation?: number }) => void;
     onPoiMove?: (index: number, latlng: [number, number]) => void;
     className?: string;
     zoomControl?: boolean;
     flyTo?: [number, number];
+    /** Tryb transportu — wpływa na snap kliknięcia do szlaku/drogi. */
+    transport?: "hiking" | "cycling" | "car";
     /** Display-only BRouter snap for RouteDetail */
     snap?: boolean;
 };
@@ -41,26 +78,22 @@ export function RouteMap({
     route,
     height = "100%",
     interactive = true,
-    transportMode,
     onMapClick,
-    onNoRoute,
     onPoiMove,
     className,
     zoomControl,
     flyTo,
+    transport = "hiking",
     snap = false,
 }: Props) {
     const ref = useRef<HTMLDivElement>(null);
     const mapRef = useRef<L.Map | null>(null);
     const osmWaysRef  = useRef<OsmWay[]>([]);
     const osmLoadedRef = useRef(false);
-    const transportModeRef = useRef<"hiking" | "cycling" | "car">("hiking");
+    const peaksRef = useRef<Peak[]>([]);
+    // Czy mapa zobaczyła już dane trasy — dopasowanie widoku robimy tylko RAZ.
+    const seenDataRef = useRef(false);
     const [routedPath, setRoutedPath] = useState<[number, number][] | null>(null);
-
-    // Aktualizujemy ref po renderze (czytany tylko w asynchronicznych callbackach/efektach)
-    useEffect(() => {
-        transportModeRef.current = transportMode ?? "hiking";
-    });
 
     // ── Map init ─────────────────────────────────────────────────────────────
     useEffect(() => {
@@ -82,6 +115,14 @@ export function RouteMap({
             subdomains: "abc",
             maxZoom: 17,
         }).addTo(map);
+
+        // Widok domyślny ustawiany RAZ; potem mapa nie przeskakuje przy edycji punktów.
+        map.setView([49.27, 19.95], 11);
+
+        // Osobny panel dla trasy użytkownika — rysowana ZAWSZE nad podpowiedziami OSM.
+        map.createPane("routePane");
+        const routePane = map.getPane("routePane");
+        if (routePane) routePane.style.zIndex = "450"; // overlayPane=400 < routePane < markerPane=600
 
         return () => { map.remove(); mapRef.current = null; };
     }, [interactive, zoomControl]);
@@ -159,14 +200,15 @@ export function RouteMap({
                     }
 
                     // Two multi-polylines instead of N individual layers = fast DOM
+                    // Podpowiedzi OSM = subtelne, kreskowane tło (NIE mylić z wybraną trasą).
                     if (roadPaths.length > 0) {
                         roadLayer = L.polyline(roadPaths as L.LatLngExpression[][], {
-                            color: "#1a1a1a", weight: 2.2, opacity: 0.75,
+                            color: "#64748b", weight: 1.3, opacity: 0.4, dashArray: "2 5",
                         }).addTo(map);
                     }
                     if (pedestrianPaths.length > 0) {
                         pedestrianLayer = L.polyline(pedestrianPaths as L.LatLngExpression[][], {
-                            color: "#16a34a", weight: 2.5, opacity: 0.85,
+                            color: "#15803d", weight: 1.3, opacity: 0.35, dashArray: "2 5",
                         }).addTo(map);
                     }
 
@@ -217,6 +259,7 @@ export function RouteMap({
                     };
                     peakLayers.forEach(l => map.removeLayer(l));
                     peakLayers.length = 0;
+                    peaksRef.current = [];
                     for (const node of data.elements ?? []) {
                         const icon = L.divIcon({
                             className: "peak-marker",
@@ -224,8 +267,14 @@ export function RouteMap({
                             iconSize: [14, 14],
                             iconAnchor: [7, 7],
                         });
-                        L.marker([node.lat, node.lon], { icon }).addTo(map);
-                        peakLayers.push(L.marker([node.lat, node.lon], { icon }));
+                        const marker = L.marker([node.lat, node.lon], { icon }).addTo(map);
+                        peakLayers.push(marker);
+                        peaksRef.current.push({
+                            lat: node.lat,
+                            lon: node.lon,
+                            name: node.tags?.name,
+                            ele: node.tags?.ele ? parseFloat(node.tags.ele) : undefined,
+                        });
                     }
                 } catch { /* ignore */ }
             }, 600);
@@ -269,12 +318,12 @@ export function RouteMap({
 
         if (displayPath.length > 1) {
             const casing = L.polyline(displayPath, {
-                color: "#ffffff", weight: 5, opacity: 0.75,
-                lineCap: "round", lineJoin: "round",
+                color: "#ffffff", weight: 6, opacity: 0.95,
+                lineCap: "round", lineJoin: "round", pane: "routePane",
             }).addTo(map);
             const line = L.polyline(displayPath, {
-                color: accentColor, weight: 3, opacity: 1,
-                lineCap: "round", lineJoin: "round", smoothFactor: 1,
+                color: accentColor, weight: 3.5, opacity: 1,
+                lineCap: "round", lineJoin: "round", smoothFactor: 1, pane: "routePane",
             }).addTo(map);
             layers.push(casing, line);
         }
@@ -310,12 +359,14 @@ export function RouteMap({
             layers.push(marker);
         });
 
-        if (displayPath.length > 0) {
-            map.fitBounds(L.latLngBounds(displayPath), { padding: [40, 40] });
-        } else if (pois.length > 0) {
-            map.setView(pois[0].coords, 13);
-        } else {
-            map.setView([49.27, 19.95], 11);
+        // Dopasowanie widoku TYLKO przy pierwszym pojawieniu się gotowej trasy (≥2 pkt) —
+        // czyli przy wczytaniu istniejącej trasy. Przy dodawaniu/usuwaniu punktów klik-po-kliku
+        // (trasa rośnie od 1 punktu) mapa zostaje tam, gdzie ją ustawił użytkownik.
+        if (!seenDataRef.current && displayPath.length > 0) {
+            seenDataRef.current = true;
+            if (displayPath.length > 1) {
+                map.fitBounds(L.latLngBounds(displayPath), { padding: [40, 40] });
+            }
         }
 
         return () => { layers.forEach(l => map.removeLayer(l)); };
@@ -328,39 +379,33 @@ export function RouteMap({
         map.flyTo(flyTo, 13, { duration: 1 });
     }, [flyTo]);
 
-    // ── Click handler — snaps from cached OSM ways ────────────────────────────
+    // ── Click handler — snap tylko do charakterystycznych punktów w pobliżu ────
+    //   1) szczyt (~70 m) → kind=summit + nazwa + wysokość,
+    //   2) skrzyżowanie/szlak (~30 m) → przyciągnięte współrzędne,
+    //   3) inaczej: dokładne miejsce kliknięcia.
     useEffect(() => {
         const map = mapRef.current;
         if (!map || !onMapClick) return;
 
         const handler = (e: L.LeafletMouseEvent) => {
-            const { lat, lng } = e.latlng;
-            const snapRe = SNAP_HW[transportModeRef.current];
+            const lat = e.latlng.lat, lng = e.latlng.lng;
 
-            // Find nearest node on an appropriate cached way
-            let nearest: [number, number] | null = null;
-            let nearestD = Infinity;
-            for (const way of osmWaysRef.current) {
-                if (!snapRe.test(way.highway)) continue;
-                for (const [wLat, wLng] of way.nodes) {
-                    const d = (wLat - lat) ** 2 + (wLng - lng) ** 2;
-                    if (d < nearestD) { nearestD = d; nearest = [wLat, wLng]; }
-                }
+            // 1) Szczyt w pobliżu (~70 m) — lokalnie, natychmiast.
+            const peak = nearestPeak(peaksRef.current, lat, lng, 70);
+            if (peak) {
+                onMapClick([peak.lat, peak.lon], { kind: "summit", name: peak.name, elevation: peak.ele });
+                return;
             }
 
-            if (nearest) {
-                onMapClick(nearest);
-            } else if (!osmLoadedRef.current) {
-                // Ways not loaded yet (zoom < 13 or still fetching) — accept raw
-                onMapClick([lat, lng]);
-            } else {
-                onNoRoute?.();
-            }
+            // 2) Skrzyżowanie/szlak w pobliżu (~30 m) — z wczytanego cache OSM (BEZ sieci).
+            // 3) inaczej dokładny klik. W obu przypadkach kropka pojawia się natychmiast.
+            const snapped = nearestWayNode(osmWaysRef.current, lat, lng, 30, transport);
+            onMapClick(snapped ?? [lat, lng]);
         };
 
         map.on("click", handler);
         return () => { map.off("click", handler); };
-    }, [onMapClick, onNoRoute]);
+    }, [onMapClick, transport]);
 
     return <div ref={ref} className={className} style={{ height, width: "100%" }} />;
 }

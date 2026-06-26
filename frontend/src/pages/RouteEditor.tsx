@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Clock, MapPin, MousePointerClick, Mountain, Pencil, Save, Search, Trash2, X } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, MousePointerClick, Mountain, Pencil, Save, Search, TrendingDown, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { NewRouteButton } from "@/components/NewRouteButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { RouteMap } from "@/components/RouteMap";
-import { DifficultyBadge } from "@/components/DifficultyBadge";
+import { ElevationProfile } from "@/components/ElevationProfile";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { poiKindLabel, type POI, type Route } from "@/data/mockRoutes";
 import { routesApi, ApiError, type RouteDetailDto } from "@/lib/api";
-import { snapToTrails, type RouteMetrics } from "@/lib/routing";
+import { snapToTrails, elevationForPoi, type RouteMetrics } from "@/lib/routing";
 import { z } from "zod";
 import type { LucideIcon } from "lucide-react";
 
@@ -26,17 +26,15 @@ const titleSchema = z
 const TRANSPORT_MODES = [
   { id: "hiking"  as const, label: "Pieszo",   emoji: "🦶🏼", profile: "hiking-mountain" },
   { id: "cycling" as const, label: "Rower",    emoji: "🛞", profile: "fastbike"        },
-  { id: "car"     as const, label: "Samochód", emoji: "🚓", profile: "car-eco"         },
 ] as const;
 type TransportMode = (typeof TRANSPORT_MODES)[number]["id"];
 
-// ── Auto-difficulty from distance + ascent ───────────────────────────────────
-function autoDifficulty(distanceKm: number, ascentM: number): Route["difficulty"] {
-  const score = distanceKm + ascentM / 100;
-  if (score < 8)  return "easy";
-  if (score < 20) return "moderate";
-  return "hard";
-}
+// ── Difficulty — wybierana ręcznie przez użytkownika (kafelki) ───────────────
+const DIFFICULTIES = [
+  { id: "easy"     as const, label: "Łatwa"   },
+  { id: "moderate" as const, label: "Średnia" },
+  { id: "hard"     as const, label: "Trudna"  },
+] as const;
 
 // ── Naismith's rule for average hiker: 3.5 km/h base + 300 m ascent per hour ─
 function naismiithH(distanceKm: number, ascentM: number): number {
@@ -60,7 +58,7 @@ function punktLabel(n: number) {
 }
 
 const emptyRoute: Route = {
-  id: "new", slug: "new", title: "Nowa trasa", region: "", country: "Polska",
+  id: "new", slug: "new", title: "", region: "", country: "Polska",
   difficulty: "moderate", distanceKm: 0, ascentM: 0, durationH: 0,
   description: "", author: { name: "", initials: "" }, isPublic: true,
   updatedAt: new Date().toISOString().slice(0, 10), path: [], pois: [], tags: [],
@@ -96,6 +94,11 @@ function dtoToEditorRoute(d: RouteDetailDto): Route {
   };
 }
 
+// ── Geocoding (Nominatim) ─────────────────────────────────────────────────────
+type GeoSuggestion = { name: string; lat: number; lng: number };
+// Prosty cache w pamięci, by ograniczyć zapytania do Nominatim (limit 1 req/s).
+const geoCache = new Map<string, GeoSuggestion[]>();
+
 // ── Component ────────────────────────────────────────────────────────────────
 const RouteEditor = () => {
   const { slug } = useParams();
@@ -125,6 +128,38 @@ const RouteEditor = () => {
   const [searchQ, setSearchQ] = useState("");
   const [searching, setSearching] = useState(false);
   const [flyTo, setFlyTo] = useState<[number, number] | undefined>();
+  const [suggestions, setSuggestions] = useState<GeoSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // ── Autocomplete: debounce + cache zapytań do Nominatim ────────────────────
+  useEffect(() => {
+    const q = searchQ.trim();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (q.length < 3) { setSuggestions([]); return; }
+    const cached = geoCache.get(q);
+    if (cached) { setSuggestions(cached); return; }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6`,
+          { headers: { "Accept-Language": "pl" }, signal: controller.signal },
+        );
+        const data: { display_name: string; lat: string; lon: string }[] = await res.json();
+        const items = data.map((d) => ({ name: d.display_name, lat: parseFloat(d.lat), lng: parseFloat(d.lon) }));
+        geoCache.set(q, items);
+        setSuggestions(items);
+      } catch { /* abort / sieć */ }
+    }, 350);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [searchQ]);
+
+  const selectSuggestion = (s: GeoSuggestion) => {
+    setFlyTo([s.lat, s.lng]);
+    setSearchQ(s.name.split(",")[0]);
+    setSuggestions([]);
+    setShowSuggestions(false);
+  };
 
   // ── Routing: call BRouter when POIs or transport mode changes ──────────────
   useEffect(() => {
@@ -135,7 +170,7 @@ const RouteEditor = () => {
     const timer = setTimeout(() => {
       snapToTrails(route.pois.map((p) => p.coords), mode.profile, controller.signal)
         .then((metrics) => setRoutedMetrics(metrics));
-    }, 500);
+    }, 300);
     return () => { clearTimeout(timer); controller.abort(); };
   }, [route.pois, transport]);
 
@@ -147,17 +182,28 @@ const RouteEditor = () => {
     return Math.round(d * 10) / 10;
   }, [route.path]);
 
-  const displayKm     = routedMetrics?.distanceKm ?? fallbackKm;
-  const displayAscent = routedMetrics?.ascentM    ?? 0;
+  const displayKm      = routedMetrics?.distanceKm ?? fallbackKm;
+  const displayAscent  = routedMetrics?.ascentM    ?? 0;
+  const displayDescent = routedMetrics?.descentM   ?? 0;
   // Naismith dla przeciętnego piechura; gdy BRouter zwróci dane, używamy jego dystansu + przewyższenia
   const displayDurH   = Math.round(naismiithH(displayKm, displayAscent) * 10) / 10;
-  const difficulty    = autoDifficulty(displayKm, displayAscent);
+
+  // ── POI z wysokością: dla każdego POI bez elevation bierzemy wysokość
+  //    najbliższego wierzchołka geometrii BRoutera (źródło: routedMetrics). ──
+  const poisWithEle = useMemo<POI[]>(() => {
+    if (!routedMetrics) return route.pois;
+    return route.pois.map((p) =>
+      p.elevation != null
+        ? p
+        : { ...p, elevation: elevationForPoi(p.coords, routedMetrics.path, routedMetrics.profile) },
+    );
+  }, [route.pois, routedMetrics]);
 
   // ── Map: use BRouter path when available, straight-line fallback ───────────
   const mapRoute = useMemo(() => ({
     path: routedMetrics?.path ?? route.path,
-    pois: route.pois,
-  }), [routedMetrics, route.path, route.pois]);
+    pois: poisWithEle,
+  }), [routedMetrics, route.path, poisWithEle]);
 
   // ── Geocoding search ────────────────────────────────────────────────────────
   const handleSearch = async () => {
@@ -182,13 +228,14 @@ const RouteEditor = () => {
   };
 
   // ── POI management ──────────────────────────────────────────────────────────
-  // Receives coords already snapped to nearest OSM way by RouteMap
-  const handleMapClick = (latlng: [number, number]) => {
+  // Współrzędne mogą być już przyciągnięte przez RouteMap do szczytu/szlaku (meta).
+  const handleMapClick = (latlng: [number, number], meta?: { kind?: POI["kind"]; name?: string; elevation?: number }) => {
     const newPoi: POI = {
       id: `p${Date.now()}`,
-      name: `Punkt ${route.pois.length + 1}`,
-      kind: route.pois.length === 0 ? "start" : "waypoint",
+      name: meta?.name ?? `Punkt ${route.pois.length + 1}`,
+      kind: meta?.kind ?? (route.pois.length === 0 ? "start" : "waypoint"),
       coords: latlng,
+      elevation: meta?.elevation,
     };
     setRoute((r) => ({ ...r, pois: [...r.pois, newPoi], path: [...r.path, latlng] }));
   };
@@ -232,18 +279,22 @@ const RouteEditor = () => {
         description: route.description,
         region: route.region,
         country: route.country,
-        difficulty,
+        difficulty: route.difficulty,
         isPublic: route.isPublic,
         tags: route.tags,
       };
-      const points = route.pois.map((poi, i) => ({
+      const points = poisWithEle.map((poi, i) => ({
         order: i, lat: poi.coords[0], lng: poi.coords[1],
         elevation: poi.elevation, kind: poi.kind, name: poi.name, note: poi.note,
       }));
+      // Metryki z BRoutera jako autorytatywne (Opcja B: backend ich nie nadpisuje).
+      const metrics = routedMetrics
+        ? { distanceKm: displayKm, ascentM: displayAscent, descentM: displayDescent, durationH: displayDurH }
+        : undefined;
 
       if (isEditing) {
         await routesApi.update(route.id, body);
-        await routesApi.upsertPoints(route.id, points);
+        await routesApi.upsertPoints(route.id, points, metrics);
         await queryClient.invalidateQueries({ queryKey: ["route", route.slug] });
         await queryClient.invalidateQueries({ queryKey: ["my-routes"] });
         await queryClient.invalidateQueries({ queryKey: ["recent-routes"] });
@@ -252,7 +303,7 @@ const RouteEditor = () => {
       } else {
         const created = await routesApi.create(body);
         if (points.length > 0) {
-          await routesApi.upsertPoints(created.id, points);
+          await routesApi.upsertPoints(created.id, points, metrics);
         }
         toast.success("Trasa zapisana!");
         navigate("/app");
@@ -298,12 +349,11 @@ const RouteEditor = () => {
           <RouteMap
             route={isEmpty ? { path: [], pois: [] } : mapRoute}
             onMapClick={handleMapClick}
-            onNoRoute={() => toast.error("Brak drogi lub szlaku w tym miejscu.")}
             onPoiMove={handlePoiMove}
-            transportMode={transport}
             zoomControl={false}
             height="100%"
             flyTo={flyTo}
+            transport={transport}
           />
         </div>
 
@@ -323,21 +373,41 @@ const RouteEditor = () => {
           </Link>
 
           {/* Place search */}
-          <div className="mb-4">
+          <div className="relative mb-4">
             <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Wyszukaj miejsce na mapie</span>
             <div className="flex gap-1.5">
               <input
                 value={searchQ}
-                onChange={(e) => setSearchQ(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
+                onChange={(e) => { setSearchQ(e.target.value); setShowSuggestions(true); }}
+                onFocus={() => setShowSuggestions(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { if (suggestions.length) selectSuggestion(suggestions[0]); else { setShowSuggestions(false); handleSearch(); } }
+                  if (e.key === "Escape") setShowSuggestions(false);
+                }}
                 placeholder="Np. Rysy, Tatry..."
                 className="flex-1 rounded-md border bg-background px-3 py-1.5 text-sm outline-none transition-colors focus:border-primary"
                 style={{ borderColor: "hsl(var(--hairline))" }}
               />
-              <Button size="sm" variant="outline" onClick={handleSearch} disabled={searching} aria-label="Szukaj">
+              <Button size="sm" variant="outline" onClick={() => { setShowSuggestions(false); handleSearch(); }} disabled={searching} aria-label="Szukaj">
                 <Search className="h-4 w-4" />
               </Button>
             </div>
+            {showSuggestions && suggestions.length > 0 && (
+              <ul className="absolute left-0 right-0 top-full z-[600] mt-1 max-h-60 overflow-y-auto rounded-md border bg-card shadow-lift" style={{ borderColor: "hsl(var(--hairline))" }}>
+                {suggestions.map((s, i) => (
+                  <li key={i}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => { e.preventDefault(); selectSuggestion(s); }}
+                      className="flex w-full items-start gap-2 px-3 py-2 text-left text-xs transition-colors hover:bg-secondary"
+                    >
+                      <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
+                      <span className="line-clamp-2">{s.name}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {/* Route name */}
@@ -346,8 +416,8 @@ const RouteEditor = () => {
             <input
               value={route.title}
               onChange={(e) => { setRoute({ ...route, title: e.target.value }); if (titleError) setTitleError(null); }}
-              placeholder="Nazwa trasy"
-              className={`w-full border-b bg-transparent py-1.5 font-display text-xl font-medium tracking-tight outline-none transition-colors focus:border-primary ${titleError ? "border-destructive" : ""}`}
+              placeholder="Np. Pętla przez Giewont"
+              className={`w-full rounded-md border bg-background px-3 py-1.5 text-sm outline-none transition-colors focus:border-primary ${titleError ? "border-destructive" : ""}`}
               style={titleError ? undefined : { borderColor: "hsl(var(--hairline))" }}
             />
             {titleError && <span className="mt-1 block text-xs text-destructive">{titleError}</span>}
@@ -359,7 +429,6 @@ const RouteEditor = () => {
             <Textarea
               value={route.description}
               onChange={(e) => setRoute({ ...route, description: e.target.value })}
-              placeholder="Np. Jesienna pętla przez las bukowy..."
               rows={2}
               className="resize-none"
             />
@@ -386,23 +455,46 @@ const RouteEditor = () => {
             </div>
           </div>
 
-          {/* Auto-difficulty */}
-          <div className="mt-4 flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Trudność (wyliczana)</span>
-            <DifficultyBadge difficulty={difficulty} />
+          {/* Difficulty — wybór ręczny */}
+          <div className="mt-4">
+            <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Trudność</div>
+            <div className="inline-flex w-full rounded-md border bg-secondary p-1" style={{ borderColor: "hsl(var(--hairline))" }}>
+              {DIFFICULTIES.map((d) => (
+                <button
+                  key={d.id}
+                  onClick={() => setRoute((r) => ({ ...r, difficulty: d.id }))}
+                  className={`flex flex-1 items-center justify-center rounded px-2 py-1.5 text-[11px] font-medium transition-colors ${
+                    route.difficulty === d.id
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Live metrics */}
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            <Metric icon={MapPin}   value={displayKm.toFixed(1)}  unit="km" label="Dystans" />
-            <Metric icon={Mountain} value={String(displayAscent)} unit="m↑" label="Podejście" />
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <Metric icon={MapPin}       value={displayKm.toFixed(1)}    unit="km" label="Dystans" />
             <Metric
               icon={Clock}
               value={displayDurH < 1 ? String(Math.round(displayDurH * 60)) : displayDurH.toFixed(1)}
               unit={displayDurH < 1 ? "min" : "h"}
               label="Czas"
             />
+            <Metric icon={Mountain}     value={String(displayAscent)}   unit="m ↑" label="Podejście" />
+            <Metric icon={TrendingDown} value={String(displayDescent)}  unit="m ↓" label="Zejście" />
           </div>
+
+          {/* Elevation profile */}
+          {routedMetrics && routedMetrics.profile.length > 1 && (
+            <div className="mt-4">
+              <div className="mb-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Profil wysokościowy</div>
+              <ElevationProfile data={routedMetrics.profile} height={120} />
+            </div>
+          )}
 
           {/* Public toggle */}
           <label className="mt-4 flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2.5" style={{ borderColor: "hsl(var(--hairline))" }}>
@@ -449,7 +541,7 @@ const RouteEditor = () => {
           </div>
 
           <ol className="flex-1 overflow-y-auto p-2">
-            {route.pois.map((poi, i) => (
+            {poisWithEle.map((poi, i) => (
               <li key={poi.id} className="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-secondary/60">
                 <span
                   className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-medium ${i === 0 ? "bg-primary text-primary-foreground" : "border bg-card text-foreground"}`}
@@ -470,7 +562,9 @@ const RouteEditor = () => {
                     <div className="truncate text-sm font-medium">{poi.name}</div>
                   )}
                   <div className="truncate text-xs text-muted-foreground">
-                    {poiKindLabel[poi.kind]}{poi.note ? ` · ${poi.note}` : ""}
+                    {poiKindLabel[poi.kind]}
+                    {poi.elevation != null ? ` · ${Math.round(poi.elevation)} m n.p.m.` : ""}
+                    {poi.note ? ` · ${poi.note}` : ""}
                   </div>
                 </div>
                 <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">

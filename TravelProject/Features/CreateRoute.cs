@@ -118,6 +118,7 @@ namespace TravelProject.Features
             route.Difficulty,
             route.DistanceKm,
             route.AscentM,
+            route.DescentM,
             route.DurationH,
             route.IsPublic,
             route.UpdatedAt,

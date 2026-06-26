@@ -13,6 +13,7 @@ namespace TravelProject.Models
         public List<string> Tags { get; set; } = [];
         public double DistanceKm { get; set; }
         public int AscentM { get; set; }
+        public int DescentM { get; set; }
         public double DurationH { get; set; }
         public required string OwnerId { get; set; }
         public ApplicationUser Owner { get; set; } = null!;

@@ -39,6 +39,7 @@ namespace TravelProject.Features
             r.Difficulty,
             r.DistanceKm,
             r.AscentM,
+            r.DescentM,
             r.DurationH,
             r.IsPublic,
             r.Tags,
