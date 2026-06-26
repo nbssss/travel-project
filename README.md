@@ -1,50 +1,24 @@
-## Uruchomienie (lokalnie)
+## Uruchomienie (Docker)
 
-Trzy elementy uruchamiane osobno: **baza → backend → frontend**.
 
-### 1. Baza danych (PostgreSQL w Dockerze)
-W katalogu głównym repo:
 ```bash
-docker compose up -d db
+docker compose up --build
 ```
-Postgres nasłuchuje na `localhost:5433`. Connection string jest w `appsettings.json`.
 
-### 2. Backend
-Klucz do podpisu JWT poza repo - należy ustawić go **raz** (dowolny losowy ciąg, min. 32 znaki):
-```bash
-dotnet user-secrets set "Jwt:SecretKey" "zmien-na-losowy-sekret-min-32-znaki" --project TravelProject
-```
-Uruchom API (profil `http`, bez certyfikatu):
-```bash
-dotnet run --project TravelProject --launch-profile http
-```
-- API: **http://localhost:5134**
-- Swagger (dokumentacja): **http://localhost:5134/swagger**
-- Schemat bazy zakłada się automatycznie przy starcie.
+Jedna komenda stawia cały stack: bazę, backend i frontend. Dzięki health-checkom kolejność jest pilnowana automatycznie (API startuje po gotowości bazy, frontend po gotowości API). Schemat bazy zakłada się sam przy starcie (migracje EF Core).
 
-### 3. Frontend
-W osobnym terminalu:
-```bash
-cd frontend
-npm install
-npm run dev
-```
-Aplikacja: **http://localhost:5173**. Front domyślnie woła API pod `http://localhost:5134`.
-
-### 4. Gotowe
-Otwórz **http://localhost:5173**.
-
-## Porty
+### Adresy
 
 | Usługa | Adres |
 |---|---|
-| PostgreSQL | `localhost:5433` |
-| Backend API | `http://localhost:5134` (Swagger: `/swagger`) |
-| Frontend | `http://localhost:5173` |
+| Frontend | http://127.0.0.1:5173 |
+| Backend API | http://127.0.0.1:8081 |
+| Swagger | http://127.0.0.1:8081/swagger |
+| Health-check | http://127.0.0.1:8081/health |
 
-## Zatrzymanie
+### Zatrzymanie
 
 ```bash
-docker compose down   # zatrzymuje bazę (dane zostają w wolumenie)
+docker compose down        # zatrzymuje stack (dane bazy zostają w wolumenie)
+docker compose down -v     # dodatkowo usuwa dane bazy
 ```
-
