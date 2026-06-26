@@ -166,6 +166,8 @@ export interface LikeResponse {
 export const routesApi = {
   create: (body: CreateRouteDto) =>
     request<RouteDto>("/routes", { method: "POST", body: JSON.stringify(body) }),
+  update: (id: string, body: CreateRouteDto) =>
+    request<RouteDto>(`/routes/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   upsertPoints: (id: string, points: RoutePointInput[]) =>
     request<RouteDto>(`/routes/${id}/points`, { method: "PUT", body: JSON.stringify({ points }) }),
   mine: () =>
