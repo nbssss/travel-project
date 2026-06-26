@@ -12,7 +12,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> dbConte
     public DbSet<RoutePoint> RoutePoints => Set<RoutePoint>();
     public DbSet<RouteShare> RouteShares => Set<RouteShare>();
     public DbSet<RouteLike> RouteLikes => Set<RouteLike>();
-    public DbSet<RoutePhoto> RoutePhotos => Set<RoutePhoto>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -66,16 +65,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> dbConte
              .WithMany()
              .HasForeignKey(s => s.SharedWithUserId)
              .OnDelete(DeleteBehavior.Restrict);
-        });
-
-        builder.Entity<RoutePhoto>(e =>
-        {
-            e.ToTable("RoutePhotos", schema: "public");
-            e.Property(p => p.Url).HasMaxLength(500);
-            e.HasOne(p => p.Route)
-             .WithMany(r => r.Photos)
-             .HasForeignKey(p => p.RouteId)
-             .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<RouteLike>(e =>

@@ -143,19 +143,12 @@ export interface RoutePointDto {
   note?: string;
 }
 
-export interface RoutePhotoDto {
-  id: string;
-  url: string;
-  order: number;
-}
-
 export interface RouteDetailDto extends RouteDto {
   description?: string;
   country?: string;
   tags: string[];
   createdAt: string;
   points: RoutePointDto[];
-  photos: RoutePhotoDto[];
 }
 
 export interface LikeResponse {
@@ -166,6 +159,8 @@ export interface LikeResponse {
 export const routesApi = {
   create: (body: CreateRouteDto) =>
     request<RouteDto>("/routes", { method: "POST", body: JSON.stringify(body) }),
+  update: (id: string, body: CreateRouteDto) =>
+    request<RouteDto>(`/routes/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   upsertPoints: (id: string, points: RoutePointInput[]) =>
     request<RouteDto>(`/routes/${id}/points`, { method: "PUT", body: JSON.stringify({ points }) }),
   mine: () =>
@@ -176,15 +171,18 @@ export const routesApi = {
     request<RouteDto[]>("/routes/liked"),
   bySlug: (slug: string) =>
     request<RouteDetailDto>(`/routes/${slug}`),
+  remove: (id: string) =>
+    request<void>(`/routes/${id}`, { method: "DELETE" }),
+  exportGpx: async (id: string): Promise<Blob> => {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/routes/${id}/export/gpx`, {
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+    if (!res.ok) throw new ApiError(res.status, await extractError(res));
+    return res.blob();
+  },
   like: (id: string) =>
     request<LikeResponse>(`/routes/${id}/like`, { method: "POST" }),
   unlike: (id: string) =>
     request<LikeResponse>(`/routes/${id}/like`, { method: "DELETE" }),
-  uploadPhoto: (routeId: string, file: File) => {
-    const form = new FormData();
-    form.append("file", file);
-    return request<RoutePhotoDto>(`/routes/${routeId}/photos`, { method: "POST", body: form });
-  },
-  deletePhoto: (routeId: string, photoId: string) =>
-    request<void>(`/routes/${routeId}/photos/${photoId}`, { method: "DELETE" }),
 };

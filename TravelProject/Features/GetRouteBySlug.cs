@@ -16,7 +16,6 @@ namespace TravelProject.Features
                 var route = await db.Routes
                     .Include(r => r.Owner)
                     .Include(r => r.Points.OrderBy(p => p.Order))
-                    .Include(r => r.Photos.OrderBy(p => p.Order))
                     .FirstOrDefaultAsync(r => r.Slug == slug);
 
                 if (route is null) return Results.NotFound();
@@ -52,7 +51,6 @@ namespace TravelProject.Features
             {
                 p.Order, p.Lat, p.Lng, p.Elevation, p.Kind, p.Name, p.Note,
             }),
-            Photos = r.Photos.Select(p => new { p.Id, p.Url, p.Order }),
         };
     }
 }

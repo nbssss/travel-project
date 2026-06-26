@@ -9,8 +9,9 @@ import { RouteMap } from "@/components/RouteMap";
 import { DifficultyBadge } from "@/components/DifficultyBadge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { getRoute, poiKindLabel, type POI, type Route } from "@/data/mockRoutes";
-import { routesApi, ApiError } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { poiKindLabel, type POI, type Route } from "@/data/mockRoutes";
+import { routesApi, ApiError, type RouteDetailDto } from "@/lib/api";
 import { snapToTrails, type RouteMetrics } from "@/lib/routing";
 import type { LucideIcon } from "lucide-react";
 
@@ -58,12 +59,55 @@ const emptyRoute: Route = {
   updatedAt: new Date().toISOString().slice(0, 10), path: [], pois: [], tags: [],
 };
 
+// Mapuje trasę z API na model edytora (punkty → równoległe tablice pois/path)
+function dtoToEditorRoute(d: RouteDetailDto): Route {
+  const pts = [...d.points].sort((a, b) => a.order - b.order);
+  return {
+    id: d.id,
+    slug: d.slug,
+    title: d.title,
+    region: d.region ?? "",
+    country: d.country ?? "Polska",
+    difficulty: d.difficulty as Route["difficulty"],
+    distanceKm: d.distanceKm,
+    ascentM: d.ascentM,
+    durationH: d.durationH,
+    description: d.description ?? "",
+    author: { name: d.ownerUserName ?? "", initials: "" },
+    isPublic: d.isPublic,
+    updatedAt: d.updatedAt,
+    path: pts.map((p) => [p.lat, p.lng] as [number, number]),
+    pois: pts.map((p, i) => ({
+      id: `loaded-${i}`,
+      name: p.name ?? `Punkt ${i + 1}`,
+      kind: p.kind as POI["kind"],
+      coords: [p.lat, p.lng] as [number, number],
+      elevation: p.elevation,
+      note: p.note,
+    })),
+    tags: d.tags ?? [],
+  };
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 const RouteEditor = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const initial = slug && slug !== "new" ? getRoute(slug) ?? emptyRoute : emptyRoute;
-  const [route, setRoute] = useState<Route>({ ...initial, pois: [...initial.pois], path: [...initial.path] });
+  const queryClient = useQueryClient();
+  const isEditing = !!slug && slug !== "new";
+
+  const { data: existing, isLoading, isError } = useQuery({
+    queryKey: ["route", slug],
+    queryFn: () => routesApi.bySlug(slug!),
+    enabled: isEditing,
+  });
+
+  const [route, setRoute] = useState<Route>({ ...emptyRoute, pois: [], path: [] });
+
+  // Wypełnij formularz danymi z API przy wejściu w tryb edycji
+  useEffect(() => {
+    if (existing) setRoute(dtoToEditorRoute(existing));
+  }, [existing]);
   const [transport, setTransport] = useState<TransportMode>("hiking");
   const [routedMetrics, setRoutedMetrics] = useState<RouteMetrics | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -163,7 +207,7 @@ const RouteEditor = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const created = await routesApi.create({
+      const body = {
         title: route.title,
         description: route.description,
         region: route.region,
@@ -171,18 +215,28 @@ const RouteEditor = () => {
         difficulty,
         isPublic: route.isPublic,
         tags: route.tags,
-      });
-      if (route.pois.length > 0) {
-        await routesApi.upsertPoints(
-          created.id,
-          route.pois.map((poi, i) => ({
-            order: i, lat: poi.coords[0], lng: poi.coords[1],
-            elevation: poi.elevation, kind: poi.kind, name: poi.name, note: poi.note,
-          })),
-        );
+      };
+      const points = route.pois.map((poi, i) => ({
+        order: i, lat: poi.coords[0], lng: poi.coords[1],
+        elevation: poi.elevation, kind: poi.kind, name: poi.name, note: poi.note,
+      }));
+
+      if (isEditing) {
+        await routesApi.update(route.id, body);
+        await routesApi.upsertPoints(route.id, points);
+        await queryClient.invalidateQueries({ queryKey: ["route", route.slug] });
+        await queryClient.invalidateQueries({ queryKey: ["my-routes"] });
+        await queryClient.invalidateQueries({ queryKey: ["recent-routes"] });
+        toast.success("Trasa zaktualizowana!");
+        navigate(`/app/route/${route.slug}`);
+      } else {
+        const created = await routesApi.create(body);
+        if (points.length > 0) {
+          await routesApi.upsertPoints(created.id, points);
+        }
+        toast.success("Trasa zapisana!");
+        navigate("/app");
       }
-      toast.success("Trasa zapisana!");
-      navigate("/app");
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Nie udało się zapisać trasy.");
     } finally {
@@ -191,6 +245,23 @@ const RouteEditor = () => {
   };
 
   // ── Render ──────────────────────────────────────────────────────────────────
+  if (isEditing && isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background text-sm text-muted-foreground">
+        Ładowanie trasy...
+      </div>
+    );
+  }
+
+  if (isEditing && isError) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background">
+        <p className="text-sm text-muted-foreground">Nie udało się wczytać trasy do edycji.</p>
+        <Button variant="outline" size="sm" asChild><Link to="/app">Wróć</Link></Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
       <header className="flex h-16 shrink-0 items-center justify-between border-b px-4 md:px-6" style={{ borderColor: "hsl(var(--hairline))" }}>
@@ -334,7 +405,7 @@ const RouteEditor = () => {
               <Link to="/app"><X className="h-4 w-4" /> Anuluj</Link>
             </Button>
             <Button variant="default" size="sm" onClick={handleSave} disabled={saving || isEmpty}>
-              <Save className="h-4 w-4" /> {saving ? "Zapisuję…" : "Zapisz trasę"}
+              <Save className="h-4 w-4" /> {saving ? "Zapisuję…" : isEditing ? "Zapisz zmiany" : "Zapisz trasę"}
             </Button>
           </div>
           </div>{/* /scroll */}

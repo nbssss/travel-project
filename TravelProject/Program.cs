@@ -54,6 +54,9 @@ namespace TravelProject
             builder.Services.AddValidatorsFromAssemblyContaining<Program>();
             builder.Services.AddAntiforgery();
 
+            builder.Services.AddHealthChecks()
+                .AddDbContextCheck<ApplicationDbContext>("database");
+
             var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
             builder.Services.AddCors(options =>
                 options.AddDefaultPolicy(policy =>
@@ -79,14 +82,17 @@ namespace TravelProject
             app.UseAuthorization();
             app.UseAntiforgery();
 
+            app.MapHealthChecks("/health");
+
             GetStats.MapEndpoint(app);
             GetProfile.MapEndpoint(app);
             UploadAvatar.MapEndpoint(app);
-            UploadRoutePhoto.MapEndpoint(app);
-            DeleteRoutePhoto.MapEndpoint(app);
             RegisterUser.MapEndpoint(app);
             LoginUser.MapEndpoint(app);
             CreateRoute.MapEndpoint(app);
+            UpdateRoute.MapEndpoint(app);
+            DeleteRoute.MapEndpoint(app);
+            ExportRouteGpx.MapEndpoint(app);
             UpsertRoutePoints.MapEndpoint(app);
             GetMyRoutes.MapEndpoint(app);
             GetRecentRoutes.MapEndpoint(app);
