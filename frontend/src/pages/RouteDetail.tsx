@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Download, Edit3, Heart, Mountain, Route as RouteIcon, Timer, MapPin, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, Edit3, Heart, ImagePlus, Mountain, Route as RouteIcon, Timer, MapPin, Trash2, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
@@ -13,7 +13,7 @@ import { poiKindLabel } from "@/data/mockRoutes";
 
 const RouteDetail = () => {
   const { slug } = useParams<{ slug: string }>();
-  const { userName } = useAuth();
+  const { userName, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -124,8 +124,8 @@ const RouteDetail = () => {
     <AppShell>
       <div className="border-b bg-gradient-soft" style={{ borderColor: "hsl(var(--hairline))" }}>
         <div className="container max-w-7xl py-8">
-          <Link to="/app" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-3.5 w-3.5" /> Moje trasy
+          <Link to={isAuthenticated ? "/app" : "/app/explore"} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-3.5 w-3.5" /> {isAuthenticated ? "Moje trasy" : "Odkrywaj"}
           </Link>
           <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
@@ -186,11 +186,10 @@ const RouteDetail = () => {
 
       <div className="container max-w-7xl py-8">
         {/* Stats row */}
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-hairline md:grid-cols-4" style={{ borderColor: "hsl(var(--hairline))" }}>
+        <div className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border bg-hairline" style={{ borderColor: "hsl(var(--hairline))" }}>
           <Stat icon={<RouteIcon className="h-4 w-4" />} value={route.distanceKm} unit="km" label="Dystans" />
           <Stat icon={<Mountain className="h-4 w-4" />} value={route.ascentM} unit="m ↑" label="Suma podejść" />
           <Stat icon={<Timer className="h-4 w-4" />} value={route.durationH} unit="h" label="Szac. czas" />
-          <Stat icon={<MapPin className="h-4 w-4" />} value={route.points.length} unit="" label="Punktów POI" />
         </div>
 
         {/* Map + sidebar */}

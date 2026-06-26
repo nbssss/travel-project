@@ -5,7 +5,6 @@ import { ArrowRight, Compass, Download, Map as MapIcon, Mountain, Share2 } from 
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { NewRouteButton } from "@/components/NewRouteButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { RouteMap } from "@/components/RouteMap";
 import { Fireworks } from "@/components/Fireworks";
@@ -29,11 +28,9 @@ const Landing = () => {
         <div className="container flex h-16 items-center justify-between">
           <Logo />
           <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
-            <a href="#how" className="hover:text-foreground">Jak to działa</a>
             <Link to="/app/explore" className="hover:text-foreground">Odkrywaj</Link>
           </nav>
           <div className="flex items-center gap-2">
-            <NewRouteButton />
             <ThemeToggle />
             <Button variant="ghost" size="sm" asChild><Link to="/login">Zaloguj</Link></Button>
             <Button variant="hero" size="sm" asChild><Link to="/register">Załóż konto</Link></Button>
@@ -163,7 +160,7 @@ const Landing = () => {
 
       <footer className="border-t" style={{ borderColor: "hsl(var(--hairline))" }}>
         <div className="container flex flex-col items-start justify-between gap-4 py-8 text-xs text-muted-foreground md:flex-row md:items-center">
-          <div className="flex items-center gap-3"><Logo /><span>· UJ FAIS · PAI 2025/2026</span></div>
+          <div className="flex items-center gap-3"><Logo /></div>
           <a
             href="https://unsplash.com/photos/a-group-of-people-standing-on-top-of-a-mountain-XX1h3Zk0wPA"
             target="_blank"
