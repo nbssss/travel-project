@@ -131,6 +131,7 @@ namespace TravelProject.Services
             var routes = await db.Routes
                 .Where(r => r.OwnerId == userId)
                 .OrderByDescending(r => r.UpdatedAt)
+                .Include(r => r.Points)
                 .ToListAsync();
 
             var routeIds = routes.Select(r => r.Id).ToList();
@@ -161,6 +162,7 @@ namespace TravelProject.Services
                 .OrderByDescending(r => r.CreatedAt)
                 .Take(10)
                 .Include(r => r.Owner)
+                .Include(r => r.Points)
                 .ToListAsync();
 
             var routeIds = routes.Select(r => r.Id).ToList();
@@ -192,7 +194,9 @@ namespace TravelProject.Services
                 .Where(l => l.UserId == userId)
                 .OrderByDescending(l => l.CreatedAt)
                 .Include(l => l.Route)
-                .ThenInclude(r => r.Owner)
+                    .ThenInclude(r => r.Owner)
+                .Include(l => l.Route)
+                    .ThenInclude(r => r.Points)
                 .Select(l => l.Route)
                 .ToListAsync();
 
@@ -381,6 +385,10 @@ namespace TravelProject.Services
             OwnerUserName = ownerUserName,
             LikesCount = likesCount,
             IsLikedByMe = isLikedByMe,
+            // Lekka geometria do miniaturki — same współrzędne POI (uproszczona ścieżka, bez nazw/wysokości).
+            PreviewPath = r.Points
+                .OrderBy(p => p.Order)
+                .Select(p => new[] { p.Lat, p.Lng }),
         };
 
         private static object ToDetailDto(Route r, int likesCount, bool isLikedByMe) => new

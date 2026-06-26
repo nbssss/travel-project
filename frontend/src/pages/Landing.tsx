@@ -1,24 +1,32 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Compass, Download, Map as MapIcon, Mountain, Share2 } from "lucide-react";
+import { ArrowRight, Compass, Download, LogOut, Map as MapIcon, Mountain, Share2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { RouteMap } from "@/components/RouteMap";
 import { Fireworks } from "@/components/Fireworks";
-import { mockRoutes } from "@/data/mockRoutes";
+import { routeOfTheDay } from "@/data/mockRoutes";
 import { statsApi } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 const Landing = () => {
-  const featured = mockRoutes[0];
+  const featured = routeOfTheDay;
   const { theme } = useTheme();
+  const navigate = useNavigate();
+  const { isAuthenticated, userName, logout } = useAuth();
   const [mounted, setMounted] = useState(false);
   // flaga mounted zapobiega miganiu motywu (fajerwerki) na pierwszym renderze
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
   const isPride = mounted && theme === "pride";
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
 
   const { data: stats } = useQuery({ queryKey: ["stats"], queryFn: statsApi.get, staleTime: 5 * 60_000 });
 
@@ -30,12 +38,35 @@ const Landing = () => {
         <div className="container flex h-16 items-center justify-between">
           <Logo />
           <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
+            {isAuthenticated && <Link to="/app" className="hover:text-foreground">Moje trasy</Link>}
             <Link to="/app/explore" className="hover:text-foreground">Odkrywaj</Link>
           </nav>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button variant="ghost" size="sm" asChild><Link to="/login">Zaloguj</Link></Button>
-            <Button variant="hero" size="sm" asChild><Link to="/register">Załóż konto</Link></Button>
+            {isAuthenticated ? (
+              <>
+                <button
+                  onClick={() => navigate("/app/profile")}
+                  aria-label="Profil"
+                  title={userName ?? "Profil"}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  {userName ? userName[0].toUpperCase() : "?"}
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Wyloguj</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild><Link to="/login">Zaloguj</Link></Button>
+                <Button variant="hero" size="sm" asChild><Link to="/register">Załóż konto</Link></Button>
+              </>
+            )}
           </div>
         </div>
       </header>

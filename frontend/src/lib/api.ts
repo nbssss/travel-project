@@ -130,6 +130,8 @@ export interface RouteDto {
   ownerUserName?: string;
   likesCount: number;
   isLikedByMe: boolean;
+  /** Uproszczona ścieżka [lat, lng] do podglądu na miniaturce (punkty POI trasy). */
+  previewPath?: [number, number][];
 }
 
 export interface RoutePointDto {

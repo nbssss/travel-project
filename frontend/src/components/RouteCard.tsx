@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Heart, Mountain, Route as RouteIcon, Timer } from "lucide-react";
 import type { RouteDto } from "@/lib/api";
@@ -9,6 +9,9 @@ import { RouteMap } from "./RouteMap";
 export function RouteCard({ route }: { route: RouteDto }) {
     const [liked, setLiked] = useState(route.isLikedByMe ?? false);
     const [count, setCount] = useState(route.likesCount ?? 0);
+
+    // Mini podgląd trasy w miniaturce — z lekkiej geometrii zwracanej przez endpoint listy (bez dodatkowego zapytania).
+    const preview = useMemo(() => ({ path: route.previewPath ?? [] }), [route.previewPath]);
 
     const handleLike = async (e: React.MouseEvent) => {
         e.preventDefault();
@@ -33,7 +36,7 @@ export function RouteCard({ route }: { route: RouteDto }) {
             className="group relative flex flex-col overflow-hidden rounded-xl border bg-card shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-lift"
         >
             <div className="relative h-44 overflow-hidden border-b" style={{ borderColor: "hsl(var(--hairline))" }}>
-                <RouteMap route={{}} interactive={false} height="100%" />
+                <RouteMap route={preview} interactive={false} height="100%" />
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card/80 to-transparent" />
             </div>
             <div className="flex flex-1 flex-col gap-3 p-5">

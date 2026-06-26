@@ -336,7 +336,7 @@ const RouteEditor = () => {
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
       <header className="flex h-16 shrink-0 items-center justify-between border-b px-4 md:px-6" style={{ borderColor: "hsl(var(--hairline))" }}>
-        <Logo to="/app" />
+        <Logo to="/" />
         <div className="flex items-center gap-2">
           <NewRouteButton />
           <ThemeToggle />
