@@ -29,11 +29,13 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<AuthPage mode="login" />} />
               <Route path="/register" element={<AuthPage mode="register" />} />
+
+              <Route path="/app/explore" element={<Explore />} />
+              <Route path="/app/route/:slug" element={<RouteDetail />} />
+
               <Route element={<ProtectedRoute />}>
                 <Route path="/app" element={<Dashboard />} />
-                <Route path="/app/explore" element={<Explore />} />
                 <Route path="/app/profile" element={<Profile />} />
-                <Route path="/app/route/:slug" element={<RouteDetail />} />
                 <Route path="/app/route/:slug/edit" element={<RouteEditor />} />
               </Route>
               <Route path="*" element={<NotFound />} />

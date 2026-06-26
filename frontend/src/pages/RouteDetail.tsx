@@ -15,7 +15,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5134";
 
 const RouteDetail = () => {
   const { slug } = useParams<{ slug: string }>();
-  const { userName } = useAuth();
+  const { userName, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: route, isLoading, isError } = useQuery({
@@ -119,8 +119,8 @@ const RouteDetail = () => {
     <AppShell>
       <div className="border-b bg-gradient-soft" style={{ borderColor: "hsl(var(--hairline))" }}>
         <div className="container max-w-7xl py-8">
-          <Link to="/app" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-3.5 w-3.5" /> Moje trasy
+          <Link to={isAuthenticated ? "/app" : "/app/explore"} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-3.5 w-3.5" /> {isAuthenticated ? "Moje trasy" : "Odkrywaj"}
           </Link>
           <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
