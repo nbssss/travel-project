@@ -1,21 +1,14 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera } from "lucide-react";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { RouteCard } from "@/components/RouteCard";
-import { routesApi, usersApi, ApiError } from "@/lib/api";
+import { routesApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5134";
 
 const Profile = () => {
   const { userName } = useAuth();
-  const queryClient = useQueryClient();
   const [tab, setTab] = useState<"routes" | "liked">("routes");
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: routes = [] } = useQuery({
     queryKey: ["my-routes"],
@@ -27,29 +20,7 @@ const Profile = () => {
     queryFn: routesApi.liked,
   });
 
-  const { data: profile } = useQuery({
-    queryKey: ["profile"],
-    queryFn: usersApi.profile,
-  });
-
   const initials = userName ? userName.slice(0, 2).toUpperCase() : "??";
-  const avatarSrc = profile?.avatarUrl ? `${API_URL}${profile.avatarUrl}` : null;
-
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      await usersApi.uploadAvatar(file);
-      await queryClient.invalidateQueries({ queryKey: ["profile"] });
-      toast.success("Awatar zaktualizowany!");
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Nie udało się wgrać zdjęcia.");
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
-  };
 
   const totalKm = routes.reduce((s, r) => s + r.distanceKm, 0);
   const totalAscent = routes.reduce((s, r) => s + r.ascentM, 0);
@@ -58,44 +29,16 @@ const Profile = () => {
     <AppShell>
       <div className="container mx-auto max-w-4xl py-8 md:py-12">
         <div className="flex flex-col items-start gap-6 md:flex-row md:items-center">
-          {/* Avatar z przyciskiem uploadu */}
-          <button
-            className="group relative h-24 w-24 shrink-0 overflow-hidden rounded-full shadow-lift focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            aria-label="Zmień zdjęcie profilowe"
+          <div
+            className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-hero font-display text-3xl font-medium text-primary-foreground shadow-lift"
+            aria-hidden="true"
           >
-            {avatarSrc ? (
-              <img
-                src={avatarSrc}
-                alt="Awatar"
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-gradient-hero font-display text-3xl font-medium text-primary-foreground">
-                {initials}
-              </div>
-            )}
-            {/* Hover overlay */}
-            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-              {uploading
-                ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                : <Camera className="h-5 w-5 text-white" />
-              }
-            </div>
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="sr-only"
-            onChange={handleAvatarChange}
-          />
+            {initials}
+          </div>
 
           <div className="flex-1">
             <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Profil</div>
             <h1 className="mt-1 font-display text-3xl font-medium tracking-tight">{userName ?? "—"}</h1>
-            <p className="mt-1 text-xs text-muted-foreground">Kliknij zdjęcie, aby je zmienić</p>
           </div>
         </div>
 

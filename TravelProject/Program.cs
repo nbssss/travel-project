@@ -1,10 +1,11 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using TravelProject.Features;
+using TravelProject.Services;
 
 namespace TravelProject
 {
@@ -15,6 +16,10 @@ namespace TravelProject
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddControllers();
+            // Zachowanie jak w minimal API: brakujące pola w body nie dają automatycznego 400,
+            // logika endpointu sama decyduje o odpowiedzi (np. /login → 401).
+            builder.Services.Configure<ApiBehaviorOptions>(options =>
+                options.SuppressModelStateInvalidFilter = true);
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddProblemDetails();
@@ -62,6 +67,11 @@ namespace TravelProject
                 options.AddDefaultPolicy(policy =>
                     policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
 
+            builder.Services.AddScoped<AuthService>();
+            builder.Services.AddScoped<RouteService>();
+            builder.Services.AddScoped<UserService>();
+            builder.Services.AddScoped<StatsService>();
+
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())
@@ -83,23 +93,6 @@ namespace TravelProject
             app.UseAntiforgery();
 
             app.MapHealthChecks("/health");
-
-            GetStats.MapEndpoint(app);
-            GetProfile.MapEndpoint(app);
-            UploadAvatar.MapEndpoint(app);
-            RegisterUser.MapEndpoint(app);
-            LoginUser.MapEndpoint(app);
-            CreateRoute.MapEndpoint(app);
-            UpdateRoute.MapEndpoint(app);
-            DeleteRoute.MapEndpoint(app);
-            ExportRouteGpx.MapEndpoint(app);
-            UpsertRoutePoints.MapEndpoint(app);
-            GetMyRoutes.MapEndpoint(app);
-            GetRecentRoutes.MapEndpoint(app);
-            GetLikedRoutes.MapEndpoint(app);
-            LikeRoute.MapEndpoint(app);
-            UnlikeRoute.MapEndpoint(app);
-            GetRouteBySlug.MapEndpoint(app);
 
             app.MapControllers();
 

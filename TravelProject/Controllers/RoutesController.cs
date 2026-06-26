@@ -1,0 +1,133 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using TravelProject.Models.Dtos;
+using TravelProject.Services;
+
+namespace TravelProject.Controllers
+{
+    [Route("routes")]
+    public class RoutesController(RouteService routes) : ApiControllerBase
+    {
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> Create(CreateRouteRequest req)
+        {
+            if (CurrentUserId is null) return Unauthorized();
+
+            var created = await routes.CreateAsync(CurrentUserId, req);
+            return Created($"/routes/{created.Id}", created.Dto);
+        }
+
+        [HttpPut("{id:guid}")]
+        [Authorize]
+        public async Task<IActionResult> Update(Guid id, UpdateRouteRequest req)
+        {
+            if (CurrentUserId is null) return Unauthorized();
+
+            var result = await routes.UpdateAsync(CurrentUserId, id, req);
+            return result.Op switch
+            {
+                RouteOp.NotFound => NotFound(),
+                RouteOp.Forbidden => Forbid(),
+                _ => Ok(result.Dto),
+            };
+        }
+
+        [HttpDelete("{id:guid}")]
+        [Authorize]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            if (CurrentUserId is null) return Unauthorized();
+
+            var op = await routes.DeleteAsync(CurrentUserId, id);
+            return op switch
+            {
+                RouteOp.NotFound => NotFound(),
+                RouteOp.Forbidden => Forbid(),
+                _ => NoContent(),
+            };
+        }
+
+        [HttpPut("{id:guid}/points")]
+        [Authorize]
+        public async Task<IActionResult> UpsertPoints(Guid id, UpsertPointsRequest req)
+        {
+            if (CurrentUserId is null) return Unauthorized();
+
+            var result = await routes.UpsertPointsAsync(CurrentUserId, id, req);
+            return result.Op switch
+            {
+                RouteOp.NotFound => NotFound(),
+                RouteOp.Forbidden => StatusCode(403),
+                _ => Ok(result.Dto),
+            };
+        }
+
+        [HttpGet("{id:guid}/export/gpx")]
+        public async Task<IActionResult> ExportGpx(Guid id)
+        {
+            var file = await routes.ExportGpxAsync(CurrentUserId, id);
+            if (file is null) return NotFound();
+
+            return File(file.Bytes, "application/gpx+xml", file.FileName);
+        }
+
+        [HttpGet("mine")]
+        [Authorize]
+        public async Task<IActionResult> Mine()
+        {
+            if (CurrentUserId is null) return Unauthorized();
+
+            var ownerUserName = User.FindFirstValue(JwtRegisteredClaimNames.Name)
+                             ?? User.FindFirstValue("name");
+
+            return Ok(await routes.GetMineAsync(CurrentUserId, ownerUserName));
+        }
+
+        [HttpGet("recent")]
+        public async Task<IActionResult> Recent()
+        {
+            return Ok(await routes.GetRecentAsync(CurrentUserId));
+        }
+
+        [HttpGet("liked")]
+        [Authorize]
+        public async Task<IActionResult> Liked()
+        {
+            if (CurrentUserId is null) return Unauthorized();
+
+            return Ok(await routes.GetLikedAsync(CurrentUserId));
+        }
+
+        [HttpPost("{id:guid}/like")]
+        [Authorize]
+        public async Task<IActionResult> Like(Guid id)
+        {
+            if (CurrentUserId is null) return Unauthorized();
+
+            var count = await routes.LikeAsync(CurrentUserId, id);
+            if (count is null) return NotFound();
+
+            return Ok(new { liked = true, likesCount = count.Value });
+        }
+
+        [HttpDelete("{id:guid}/like")]
+        [Authorize]
+        public async Task<IActionResult> Unlike(Guid id)
+        {
+            if (CurrentUserId is null) return Unauthorized();
+
+            var count = await routes.UnlikeAsync(CurrentUserId, id);
+            return Ok(new { liked = false, likesCount = count });
+        }
+
+        [HttpGet("{slug}")]
+        public async Task<IActionResult> BySlug(string slug)
+        {
+            var route = await routes.GetBySlugAsync(CurrentUserId, slug);
+            return route is null ? NotFound() : Ok(route);
+        }
+    }
+}
