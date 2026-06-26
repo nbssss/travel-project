@@ -13,7 +13,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { poiKindLabel, type POI, type Route } from "@/data/mockRoutes";
 import { routesApi, ApiError, type RouteDetailDto } from "@/lib/api";
 import { snapToTrails, type RouteMetrics } from "@/lib/routing";
+import { z } from "zod";
 import type { LucideIcon } from "lucide-react";
+
+const titleSchema = z
+  .string()
+  .trim()
+  .min(1, "Tytuł jest wymagany.")
+  .max(200, "Tytuł może mieć max. 200 znaków.");
 
 // ── Transport modes ──────────────────────────────────────────────────────────
 const TRANSPORT_MODES = [
@@ -114,6 +121,7 @@ const RouteEditor = () => {
   const [routedMetrics, setRoutedMetrics] = useState<RouteMetrics | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [titleError, setTitleError] = useState<string | null>(null);
   const [searchQ, setSearchQ] = useState("");
   const [searching, setSearching] = useState(false);
   const [flyTo, setFlyTo] = useState<[number, number] | undefined>();
@@ -208,10 +216,19 @@ const RouteEditor = () => {
 
   // ── Save ────────────────────────────────────────────────────────────────────
   const handleSave = async () => {
+    const titleResult = titleSchema.safeParse(route.title);
+    if (!titleResult.success) {
+      const msg = titleResult.error.issues[0].message;
+      setTitleError(msg);
+      toast.error(msg);
+      return;
+    }
+    setTitleError(null);
+
     setSaving(true);
     try {
       const body = {
-        title: route.title,
+        title: route.title.trim(),
         description: route.description,
         region: route.region,
         country: route.country,
@@ -326,11 +343,12 @@ const RouteEditor = () => {
             <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Nazwa trasy</span>
             <input
               value={route.title}
-              onChange={(e) => setRoute({ ...route, title: e.target.value })}
+              onChange={(e) => { setRoute({ ...route, title: e.target.value }); if (titleError) setTitleError(null); }}
               placeholder="Nazwa trasy"
-              className="w-full border-b bg-transparent py-1.5 font-display text-xl font-medium tracking-tight outline-none transition-colors focus:border-primary"
-              style={{ borderColor: "hsl(var(--hairline))" }}
+              className={`w-full border-b bg-transparent py-1.5 font-display text-xl font-medium tracking-tight outline-none transition-colors focus:border-primary ${titleError ? "border-destructive" : ""}`}
+              style={titleError ? undefined : { borderColor: "hsl(var(--hairline))" }}
             />
+            {titleError && <span className="mt-1 block text-xs text-destructive">{titleError}</span>}
           </label>
 
           {/* Description */}

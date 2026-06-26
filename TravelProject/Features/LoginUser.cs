@@ -1,14 +1,26 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using FluentValidation;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text;
+using TravelProject.Infrastructure;
 
 namespace TravelProject.Features
 {
     public class LoginUser
     {
         public record LoginUserRequest(string UserName, string Password);
+
+        public class Validator : AbstractValidator<LoginUserRequest>
+        {
+            public Validator()
+            {
+                RuleFor(x => x.UserName).NotEmpty().WithMessage("Nazwa użytkownika jest wymagana.");
+                RuleFor(x => x.Password).NotEmpty().WithMessage("Hasło jest wymagane.");
+            }
+        }
+
         public static void MapEndpoint(IEndpointRouteBuilder app)
         {
             app.MapPost("login", async (
@@ -48,7 +60,8 @@ namespace TravelProject.Features
                 string accessToken = tokenHandler.CreateToken(tokenDescriptor);
 
                 return Results.Ok(new { accessToken });
-            });
+            })
+            .AddEndpointFilter<ValidationFilter<LoginUserRequest>>();
         }
     }
 }

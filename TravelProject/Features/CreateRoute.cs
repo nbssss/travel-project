@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using System.Text.RegularExpressions;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using TravelProject.Infrastructure;
 using TravelProject.Models;
 using Route = TravelProject.Models.Route;
 
@@ -17,6 +19,40 @@ namespace TravelProject.Features
             bool IsPublic,
             List<string>? Tags
         );
+
+        // Wspólne dla tworzenia i edycji trasy
+        internal static readonly string[] AllowedDifficulties = ["easy", "moderate", "hard"];
+
+        public class Validator : AbstractValidator<CreateRouteRequest>
+        {
+            public Validator()
+            {
+                RuleFor(x => x.Title)
+                    .NotEmpty().WithMessage("Tytuł jest wymagany.")
+                    .MaximumLength(200).WithMessage("Tytuł może mieć max. 200 znaków.");
+
+                RuleFor(x => x.Difficulty)
+                    .Must(d => AllowedDifficulties.Contains(d))
+                    .WithMessage("Trudność musi być jedną z: easy, moderate, hard.");
+
+                RuleFor(x => x.Description)
+                    .MaximumLength(2000).WithMessage("Opis może mieć max. 2000 znaków.");
+
+                RuleFor(x => x.Region)
+                    .MaximumLength(100).WithMessage("Region może mieć max. 100 znaków.");
+
+                RuleFor(x => x.Country)
+                    .MaximumLength(100).WithMessage("Kraj może mieć max. 100 znaków.");
+
+                RuleFor(x => x.Tags!)
+                    .Must(t => t.Count <= 10).WithMessage("Maksymalnie 10 tagów.")
+                    .When(x => x.Tags is not null);
+
+                RuleForEach(x => x.Tags)
+                    .NotEmpty().WithMessage("Tag nie może być pusty.")
+                    .MaximumLength(30).WithMessage("Tag może mieć max. 30 znaków.");
+            }
+        }
 
         public static void MapEndpoint(IEndpointRouteBuilder app)
         {
@@ -52,7 +88,8 @@ namespace TravelProject.Features
 
                 return Results.Created($"/routes/{route.Id}", ToDto(route));
             })
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .AddEndpointFilter<ValidationFilter<CreateRouteRequest>>();
         }
 
         private static async Task<string> GenerateSlugAsync(string title, ApplicationDbContext db)
