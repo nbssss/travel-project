@@ -89,6 +89,7 @@ namespace TravelProject
             CreateRoute.MapEndpoint(app);
             UpdateRoute.MapEndpoint(app);
             DeleteRoute.MapEndpoint(app);
+            ExportRouteGpx.MapEndpoint(app);
             UpsertRoutePoints.MapEndpoint(app);
             GetMyRoutes.MapEndpoint(app);
             GetRecentRoutes.MapEndpoint(app);

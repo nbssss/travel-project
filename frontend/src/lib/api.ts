@@ -180,6 +180,14 @@ export const routesApi = {
     request<RouteDetailDto>(`/routes/${slug}`),
   remove: (id: string) =>
     request<void>(`/routes/${id}`, { method: "DELETE" }),
+  exportGpx: async (id: string): Promise<Blob> => {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/routes/${id}/export/gpx`, {
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+    if (!res.ok) throw new ApiError(res.status, await extractError(res));
+    return res.blob();
+  },
   like: (id: string) =>
     request<LikeResponse>(`/routes/${id}/like`, { method: "POST" }),
   unlike: (id: string) =>

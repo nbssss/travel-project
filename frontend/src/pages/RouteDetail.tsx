@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Edit3, Heart, ImagePlus, Mountain, Route as RouteIcon, Timer, MapPin, Trash2, X } from "lucide-react";
+import { ArrowLeft, Download, Edit3, Heart, ImagePlus, Mountain, Route as RouteIcon, Timer, MapPin, Trash2, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
@@ -31,6 +31,7 @@ const RouteDetail = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -83,6 +84,26 @@ const RouteDetail = () => {
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Nie udało się usunąć trasy.");
       setDeleting(false);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!route) return;
+    setExporting(true);
+    try {
+      const blob = await routesApi.exportGpx(route.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${route.slug}.gpx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Nie udało się wyeksportować trasy.");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -172,6 +193,12 @@ const RouteDetail = () => {
                 <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
                 <span className="data-num">{likesCount}</span>
               </button>
+              <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
+                {exporting
+                  ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  : <Download className="h-4 w-4" />}
+                GPX
+              </Button>
               {isOwner && (
                 <>
                   <Button variant="default" size="sm" asChild>
