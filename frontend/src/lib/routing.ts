@@ -1,5 +1,10 @@
 const BROUTER_URL = "https://brouter.de/brouter";
 
+/** Naismith's rule — musi być identyczna z backendem (dist/4.0 + ascent/400). */
+export function naismiithH(distanceKm: number, ascentM: number): number {
+  return Math.round((distanceKm / 4.0 + ascentM / 400) * 10) / 10;
+}
+
 /** Pojedynczy punkt profilu wysokościowego: skumulowany dystans + wysokość. */
 export interface ElevationPoint {
   /** Skumulowany dystans od startu w km. */
@@ -63,6 +68,7 @@ export async function snapToTrails(
   waypoints: [number, number][],
   profile: string,
   signal?: AbortSignal,
+  timeMultiplier = 1,
 ): Promise<RouteMetrics | null> {
   if (waypoints.length < 2) return null;
 
@@ -116,7 +122,7 @@ export async function snapToTrails(
         };
 
     const totalSec = parseFloat(props["total-time"] ?? "0");
-    const durationH = Math.round((totalSec / 3600) * 10) / 10;
+    const durationH = Math.round((totalSec / 3600) * timeMultiplier * 10) / 10;
 
     return { path, distanceKm, ascentM, descentM, durationH, profile: profileSeries };
   } catch {

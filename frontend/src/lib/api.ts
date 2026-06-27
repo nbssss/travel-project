@@ -68,6 +68,10 @@ export interface UserProfile {
 
 export const usersApi = {
   profile: () => request<UserProfile>("/users/me"),
+  changeUsername: (newUserName: string) =>
+    request<void>("/users/me/username", { method: "PUT", body: JSON.stringify({ newUserName }) }),
+  deleteAccount: () =>
+    request<void>("/users/me", { method: "DELETE" }),
 };
 
 export const authApi = {

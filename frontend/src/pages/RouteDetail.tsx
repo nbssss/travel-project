@@ -136,6 +136,13 @@ const RouteDetail = () => {
 
   const isOwner = !!userName && userName === route.ownerUserName;
 
+  // Używamy wartości z bazy (zapisanych z BRoutera przy właściwym profilu — pieszo lub rower).
+  // geometry (hiking BRouter) służy tylko mapie i profilowi wysokościowemu, nie statystykom.
+  const displayKm      = route.distanceKm;
+  const displayAscent  = route.ascentM;
+  const displayDescent = route.descentM ?? 0;
+  const displayDurH    = route.durationH;
+
   return (
     <AppShell>
       <div className="border-b bg-gradient-soft" style={{ borderColor: "hsl(var(--hairline))" }}>
@@ -203,10 +210,10 @@ const RouteDetail = () => {
       <div className="container max-w-7xl py-8">
         {/* Stats row */}
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-hairline sm:grid-cols-4" style={{ borderColor: "hsl(var(--hairline))" }}>
-          <Stat icon={<RouteIcon className="h-4 w-4" />} value={route.distanceKm} unit="km" label="Dystans" />
-          <Stat icon={<Mountain className="h-4 w-4" />} value={route.ascentM} unit="m ↑" label="Suma podejść" />
-          <Stat icon={<TrendingDown className="h-4 w-4" />} value={route.descentM ?? 0} unit="m ↓" label="Suma zejść" />
-          <Stat icon={<Timer className="h-4 w-4" />} value={route.durationH} unit="h" label="Szac. czas" />
+          <Stat icon={<RouteIcon className="h-4 w-4" />} value={displayKm} unit="km" label="Dystans" />
+          <Stat icon={<Mountain className="h-4 w-4" />} value={displayAscent} unit="m ↑" label="Suma podejść" />
+          <Stat icon={<TrendingDown className="h-4 w-4" />} value={displayDescent} unit="m ↓" label="Suma zejść" />
+          <Stat icon={<Timer className="h-4 w-4" />} value={displayDurH} unit="h" label="Szac. czas" />
         </div>
 
         {/* Map + sidebar */}
@@ -223,7 +230,7 @@ const RouteDetail = () => {
               <div className="mt-6 rounded-xl border p-4" style={{ borderColor: "hsl(var(--hairline))" }}>
                 <div className="mb-1 flex items-center justify-between px-1">
                   <h2 className="font-display text-base font-medium">Profil wysokościowy</h2>
-                  <span className="text-[11px] text-muted-foreground">↑ {route.ascentM} m · ↓ {route.descentM ?? 0} m</span>
+                  <span className="text-[11px] text-muted-foreground">↑ {displayAscent} m · ↓ {displayDescent} m</span>
                 </div>
                 <ElevationProfile data={geometry.profile} height={160} />
               </div>

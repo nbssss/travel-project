@@ -30,5 +30,11 @@ namespace TravelProject.Models.Dtos
         string? Note
     );
 
-    public record UpsertPointsRequest(List<RoutePointRequest> Points);
+    public record UpsertPointsRequest(
+        List<RoutePointRequest> Points,
+        double? DistanceKm,
+        int? AscentM,
+        int? DescentM,
+        double? DurationH
+    );
 }

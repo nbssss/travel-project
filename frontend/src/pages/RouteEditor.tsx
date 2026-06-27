@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { poiKindLabel, type POI, type Route } from "@/data/mockRoutes";
 import { routesApi, ApiError, type RouteDetailDto } from "@/lib/api";
-import { snapToTrails, elevationForPoi, type RouteMetrics } from "@/lib/routing";
+import { snapToTrails, elevationForPoi, naismiithH, type RouteMetrics } from "@/lib/routing";
 import { z } from "zod";
 import type { LucideIcon } from "lucide-react";
 
@@ -23,9 +23,11 @@ const titleSchema = z
   .max(200, "Tytuł może mieć max. 200 znaków.");
 
 // ── Transport modes ──────────────────────────────────────────────────────────
+// timeMultiplier koryguje czas BRoutera do realistycznej prędkości.
+// fastbike zakłada ~22 km/h; mnożnik 1.5 sprowadza to do ~15 km/h (typowy turysta rowerowy).
 const TRANSPORT_MODES = [
-  { id: "hiking"  as const, label: "Pieszo",   emoji: "🦶🏼", profile: "hiking-mountain" },
-  { id: "cycling" as const, label: "Rower",    emoji: "🛞", profile: "fastbike"        },
+  { id: "hiking"  as const, label: "Pieszo",   emoji: "🦶🏼", profile: "hiking-mountain", timeMultiplier: 1.0 },
+  { id: "cycling" as const, label: "Rower",    emoji: "🛞", profile: "fastbike",         timeMultiplier: 1.5 },
 ] as const;
 type TransportMode = (typeof TRANSPORT_MODES)[number]["id"];
 
@@ -35,11 +37,6 @@ const DIFFICULTIES = [
   { id: "moderate" as const, label: "Średnia" },
   { id: "hard"     as const, label: "Trudna"  },
 ] as const;
-
-// ── Naismith's rule for average hiker: 3.5 km/h base + 300 m ascent per hour ─
-function naismiithH(distanceKm: number, ascentM: number): number {
-  return distanceKm / 3.5 + ascentM / 300;
-}
 
 // ── Haversine fallback (straight-line distance while BRouter loads) ───────────
 function haversineKm(a: [number, number], b: [number, number]) {
@@ -168,7 +165,7 @@ const RouteEditor = () => {
     const mode = TRANSPORT_MODES.find((m) => m.id === transport)!;
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      snapToTrails(route.pois.map((p) => p.coords), mode.profile, controller.signal)
+      snapToTrails(route.pois.map((p) => p.coords), mode.profile, controller.signal, mode.timeMultiplier)
         .then((metrics) => setRoutedMetrics(metrics));
     }, 300);
     return () => { clearTimeout(timer); controller.abort(); };
@@ -185,8 +182,9 @@ const RouteEditor = () => {
   const displayKm      = routedMetrics?.distanceKm ?? fallbackKm;
   const displayAscent  = routedMetrics?.ascentM    ?? 0;
   const displayDescent = routedMetrics?.descentM   ?? 0;
-  // Naismith dla przeciętnego piechura; gdy BRouter zwróci dane, używamy jego dystansu + przewyższenia
-  const displayDurH   = Math.round(naismiithH(displayKm, displayAscent) * 10) / 10;
+  // BRouter zwraca total-time dla każdego profilu (pieszo/rower) — używamy go gdy dostępny.
+  // Naismith tylko jako fallback gdy BRouter jeszcze nie odpowiedział.
+  const displayDurH   = routedMetrics?.durationH ?? naismiithH(displayKm, displayAscent);
 
   // ── POI z wysokością: dla każdego POI bez elevation bierzemy wysokość
   //    najbliższego wierzchołka geometrii BRoutera (źródło: routedMetrics). ──
