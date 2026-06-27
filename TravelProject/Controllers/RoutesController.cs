@@ -12,6 +12,8 @@ namespace TravelProject.Controllers
     {
         [HttpPost]
         [Authorize]
+        [ProducesResponseType(typeof(RouteSummaryResponse), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Create(CreateRouteRequest req)
         {
             if (CurrentUserId is null) return Unauthorized();
@@ -22,6 +24,10 @@ namespace TravelProject.Controllers
 
         [HttpPut("{id:guid}")]
         [Authorize]
+        [ProducesResponseType(typeof(RouteSummaryResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Update(Guid id, UpdateRouteRequest req)
         {
             if (CurrentUserId is null) return Unauthorized();
@@ -37,6 +43,10 @@ namespace TravelProject.Controllers
 
         [HttpDelete("{id:guid}")]
         [Authorize]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Delete(Guid id)
         {
             if (CurrentUserId is null) return Unauthorized();
@@ -52,6 +62,10 @@ namespace TravelProject.Controllers
 
         [HttpPut("{id:guid}/points")]
         [Authorize]
+        [ProducesResponseType(typeof(RouteSummaryResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpsertPoints(Guid id, UpsertPointsRequest req)
         {
             if (CurrentUserId is null) return Unauthorized();
@@ -66,6 +80,9 @@ namespace TravelProject.Controllers
         }
 
         [HttpGet("{id:guid}/export/gpx")]
+        [Produces("application/gpx+xml")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> ExportGpx(Guid id)
         {
             var file = await routes.ExportGpxAsync(CurrentUserId, id);
@@ -76,6 +93,8 @@ namespace TravelProject.Controllers
 
         [HttpGet("mine")]
         [Authorize]
+        [ProducesResponseType(typeof(IEnumerable<RouteListItemResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Mine()
         {
             if (CurrentUserId is null) return Unauthorized();
@@ -87,6 +106,7 @@ namespace TravelProject.Controllers
         }
 
         [HttpGet("recent")]
+        [ProducesResponseType(typeof(IEnumerable<RouteListItemResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> Recent()
         {
             return Ok(await routes.GetRecentAsync(CurrentUserId));
@@ -94,6 +114,8 @@ namespace TravelProject.Controllers
 
         [HttpGet("liked")]
         [Authorize]
+        [ProducesResponseType(typeof(IEnumerable<RouteListItemResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Liked()
         {
             if (CurrentUserId is null) return Unauthorized();
@@ -103,6 +125,9 @@ namespace TravelProject.Controllers
 
         [HttpPost("{id:guid}/like")]
         [Authorize]
+        [ProducesResponseType(typeof(LikeResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Like(Guid id)
         {
             if (CurrentUserId is null) return Unauthorized();
@@ -110,20 +135,24 @@ namespace TravelProject.Controllers
             var count = await routes.LikeAsync(CurrentUserId, id);
             if (count is null) return NotFound();
 
-            return Ok(new { liked = true, likesCount = count.Value });
+            return Ok(new LikeResponse(true, count.Value));
         }
 
         [HttpDelete("{id:guid}/like")]
         [Authorize]
+        [ProducesResponseType(typeof(LikeResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Unlike(Guid id)
         {
             if (CurrentUserId is null) return Unauthorized();
 
             var count = await routes.UnlikeAsync(CurrentUserId, id);
-            return Ok(new { liked = false, likesCount = count });
+            return Ok(new LikeResponse(false, count));
         }
 
         [HttpGet("{slug}")]
+        [ProducesResponseType(typeof(RouteDetailResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> BySlug(string slug)
         {
             var route = await routes.GetBySlugAsync(CurrentUserId, slug);

@@ -110,7 +110,7 @@ namespace TravelProject.Services
             return new RouteResult(RouteOp.Success, ToSummaryDto(route));
         }
 
-        public async Task<object?> GetBySlugAsync(string? userId, string slug)
+        public async Task<RouteDetailResponse?> GetBySlugAsync(string? userId, string slug)
         {
             var route = await db.Routes
                 .Include(r => r.Owner)
@@ -126,7 +126,7 @@ namespace TravelProject.Services
             return ToDetailDto(route, likesCount, isLikedByMe);
         }
 
-        public async Task<IReadOnlyList<object>> GetMineAsync(string userId, string? ownerUserName)
+        public async Task<IReadOnlyList<RouteListItemResponse>> GetMineAsync(string userId, string? ownerUserName)
         {
             var routes = await db.Routes
                 .Where(r => r.OwnerId == userId)
@@ -155,7 +155,7 @@ namespace TravelProject.Services
                 userLiked.Contains(r.Id))).ToList();
         }
 
-        public async Task<IReadOnlyList<object>> GetRecentAsync(string? userId)
+        public async Task<IReadOnlyList<RouteListItemResponse>> GetRecentAsync(string? userId)
         {
             var routes = await db.Routes
                 .Where(r => r.IsPublic && (userId == null || r.OwnerId != userId))
@@ -188,7 +188,7 @@ namespace TravelProject.Services
                 userLiked.Contains(r.Id))).ToList();
         }
 
-        public async Task<IReadOnlyList<object>> GetLikedAsync(string userId)
+        public async Task<IReadOnlyList<RouteListItemResponse>> GetLikedAsync(string userId)
         {
             var routes = await db.RouteLikes
                 .Where(l => l.UserId == userId)
@@ -357,69 +357,65 @@ namespace TravelProject.Services
 
         // --- Mapowanie DTO (kształt JSON identyczny jak w poprzednich Feature'ach) ---
 
-        private static object ToSummaryDto(Route route) => new
-        {
-            route.Id,
-            route.Slug,
-            route.Title,
-            route.Difficulty,
-            route.DistanceKm,
-            route.AscentM,
-            route.DurationH,
-            route.IsPublic,
-            route.UpdatedAt,
-        };
+        private static RouteSummaryResponse ToSummaryDto(Route route) => new(
+            Id: route.Id,
+            Slug: route.Slug,
+            Title: route.Title,
+            Difficulty: route.Difficulty,
+            DistanceKm: route.DistanceKm,
+            AscentM: route.AscentM,
+            DurationH: route.DurationH,
+            IsPublic: route.IsPublic,
+            UpdatedAt: route.UpdatedAt
+        );
 
-        private static object ToListItemDto(Route r, string? ownerUserName, int likesCount = 0, bool isLikedByMe = false) => new
-        {
-            r.Id,
-            r.Slug,
-            r.Title,
-            r.Region,
-            r.Difficulty,
-            r.DistanceKm,
-            r.AscentM,
-            r.DurationH,
-            r.IsPublic,
-            r.UpdatedAt,
-            OwnerUserName = ownerUserName,
-            LikesCount = likesCount,
-            IsLikedByMe = isLikedByMe,
+        private static RouteListItemResponse ToListItemDto(Route r, string? ownerUserName, int likesCount = 0, bool isLikedByMe = false) => new(
+            Id: r.Id,
+            Slug: r.Slug,
+            Title: r.Title,
+            Region: r.Region,
+            Difficulty: r.Difficulty,
+            DistanceKm: r.DistanceKm,
+            AscentM: r.AscentM,
+            DurationH: r.DurationH,
+            IsPublic: r.IsPublic,
+            UpdatedAt: r.UpdatedAt,
+            OwnerUserName: ownerUserName,
+            LikesCount: likesCount,
+            IsLikedByMe: isLikedByMe,
             // Lekka geometria do miniaturki — same współrzędne POI (uproszczona ścieżka, bez nazw/wysokości).
-            PreviewPath = r.Points
+            PreviewPath: r.Points
                 .OrderBy(p => p.Order)
-                .Select(p => new[] { p.Lat, p.Lng }),
-        };
+                .Select(p => new[] { p.Lat, p.Lng })
+        );
 
-        private static object ToDetailDto(Route r, int likesCount, bool isLikedByMe) => new
-        {
-            r.Id,
-            r.Slug,
-            r.Title,
-            r.Description,
-            r.Region,
-            r.Country,
-            r.Difficulty,
-            r.DistanceKm,
-            r.AscentM,
-            r.DurationH,
-            r.IsPublic,
-            r.Tags,
-            r.CreatedAt,
-            r.UpdatedAt,
-            OwnerUserName = r.Owner?.UserName,
-            LikesCount = likesCount,
-            IsLikedByMe = isLikedByMe,
-            Points = r.Points.Select(p => new
-            {
-                p.Order,
-                p.Lat,
-                p.Lng,
-                p.Elevation,
-                p.Kind,
-                p.Name,
-                p.Note,
-            }),
-        };
+        private static RouteDetailResponse ToDetailDto(Route r, int likesCount, bool isLikedByMe) => new(
+            Id: r.Id,
+            Slug: r.Slug,
+            Title: r.Title,
+            Description: r.Description,
+            Region: r.Region,
+            Country: r.Country,
+            Difficulty: r.Difficulty,
+            DistanceKm: r.DistanceKm,
+            AscentM: r.AscentM,
+            DurationH: r.DurationH,
+            IsPublic: r.IsPublic,
+            Tags: r.Tags,
+            CreatedAt: r.CreatedAt,
+            UpdatedAt: r.UpdatedAt,
+            OwnerUserName: r.Owner?.UserName,
+            LikesCount: likesCount,
+            IsLikedByMe: isLikedByMe,
+            Points: r.Points.Select(p => new RoutePointResponse(
+                Order: p.Order,
+                Lat: p.Lat,
+                Lng: p.Lng,
+                Elevation: p.Elevation,
+                Kind: p.Kind,
+                Name: p.Name,
+                Note: p.Note
+            ))
+        );
     }
 }
