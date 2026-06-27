@@ -11,4 +11,6 @@ namespace TravelProject.Models.Dtos
     public record UserProfileResponse(string Id, string? UserName, string? Email);
 
     public record StatsResponse(int UserCount);
+
+    public record ChangeUsernameRequest(string NewUserName);
 }

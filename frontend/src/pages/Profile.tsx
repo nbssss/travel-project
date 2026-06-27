@@ -1,14 +1,24 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { RouteCard } from "@/components/RouteCard";
-import { routesApi } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { routesApi, usersApi, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 const Profile = () => {
-  const { userName } = useAuth();
+  const { userName, token, login, logout } = useAuth();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<"routes" | "liked">("routes");
+
+  // ── Change username ──────────────────────────────────────────────────────────
+  const [newUserName, setNewUserName] = useState("");
+  const [savingName, setSavingName] = useState(false);
+
+  // ── Delete account ───────────────────────────────────────────────────────────
+  const [deleting, setDeleting] = useState(false);
 
   const { data: routes = [] } = useQuery({
     queryKey: ["my-routes"],
@@ -24,6 +34,40 @@ const Profile = () => {
 
   const totalKm = routes.reduce((s, r) => s + r.distanceKm, 0);
   const totalAscent = routes.reduce((s, r) => s + r.ascentM, 0);
+
+  const handleChangeUsername = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = newUserName.trim();
+    if (trimmed.length < 3) {
+      toast.error("Nazwa musi mieć co najmniej 3 znaki.");
+      return;
+    }
+    setSavingName(true);
+    try {
+      await usersApi.changeUsername(trimmed);
+      login(token!, trimmed);
+      setNewUserName("");
+      toast.success("Nazwa użytkownika została zmieniona.");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Nie udało się zmienić nazwy.");
+    } finally {
+      setSavingName(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm("Czy na pewno chcesz usunąć konto? Wszystkie Twoje trasy zostaną usunięte. Tej operacji nie można cofnąć.")) return;
+    setDeleting(true);
+    try {
+      await usersApi.deleteAccount();
+      logout();
+      navigate("/");
+      toast.success("Konto zostało usunięte.");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Nie udało się usunąć konta.");
+      setDeleting(false);
+    }
+  };
 
   return (
     <AppShell>
@@ -104,6 +148,48 @@ const Profile = () => {
             )}
           </div>
         )}
+
+        {/* Account settings */}
+        <div className="mt-12 space-y-4">
+          <h2 className="font-display text-lg font-medium">Ustawienia konta</h2>
+
+          {/* Change username */}
+          <div className="rounded-xl border p-5" style={{ borderColor: "hsl(var(--hairline))" }}>
+            <div className="text-sm font-medium">Zmień nazwę użytkownika</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">Aktualna nazwa: <span className="font-medium text-foreground">{userName}</span></div>
+            <form onSubmit={handleChangeUsername} className="mt-4 flex gap-2">
+              <input
+                value={newUserName}
+                onChange={(e) => setNewUserName(e.target.value)}
+                placeholder="Nowa nazwa użytkownika"
+                minLength={3}
+                maxLength={50}
+                className="flex-1 rounded-md border bg-background px-3 py-1.5 text-sm outline-none transition-colors focus:border-primary"
+                style={{ borderColor: "hsl(var(--hairline))" }}
+              />
+              <Button type="submit" size="sm" disabled={savingName || !newUserName.trim()}>
+                {savingName ? "Zapisuję…" : "Zapisz"}
+              </Button>
+            </form>
+          </div>
+
+          {/* Delete account */}
+          <div className="rounded-xl border border-destructive/30 p-5">
+            <div className="text-sm font-medium text-destructive">Usuń konto</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              Trwale usuwa konto oraz wszystkie Twoje trasy. Tej operacji nie można cofnąć.
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="mt-4"
+              onClick={handleDeleteAccount}
+              disabled={deleting}
+            >
+              {deleting ? "Usuwam…" : "Usuń konto"}
+            </Button>
+          </div>
+        </div>
       </div>
     </AppShell>
   );

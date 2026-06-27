@@ -98,11 +98,16 @@ namespace TravelProject.Services
             db.RoutePoints.AddRange(newPoints);
             route.Points = newPoints;
 
-            // Przelicz metryki
+            // Metryki: użyj wartości z BRoutera (front), gdy dostępne; inaczej przelicz lokalnie
             var ordered = newPoints.OrderBy(p => p.Order).ToList();
-            route.DistanceKm = CalculateDistanceKm(ordered);
-            route.AscentM = CalculateAscentM(ordered);
-            route.DurationH = Math.Round(route.DistanceKm / 4.0 + route.AscentM / 600.0, 1);
+            route.DistanceKm = req.DistanceKm.HasValue
+                ? Math.Round(req.DistanceKm.Value, 1)
+                : CalculateDistanceKm(ordered);
+            route.AscentM = req.AscentM ?? CalculateAscentM(ordered);
+            route.DescentM = req.DescentM ?? 0;
+            route.DurationH = req.DurationH.HasValue
+                ? Math.Round(req.DurationH.Value, 1)
+                : Math.Round(route.DistanceKm / 4.0 + route.AscentM / 400.0, 1);
             route.UpdatedAt = DateTime.UtcNow;
 
             await db.SaveChangesAsync();
@@ -364,6 +369,7 @@ namespace TravelProject.Services
             Difficulty: route.Difficulty,
             DistanceKm: route.DistanceKm,
             AscentM: route.AscentM,
+            DescentM: route.DescentM,
             DurationH: route.DurationH,
             IsPublic: route.IsPublic,
             UpdatedAt: route.UpdatedAt
@@ -377,6 +383,7 @@ namespace TravelProject.Services
             Difficulty: r.Difficulty,
             DistanceKm: r.DistanceKm,
             AscentM: r.AscentM,
+            DescentM: r.DescentM,
             DurationH: r.DurationH,
             IsPublic: r.IsPublic,
             UpdatedAt: r.UpdatedAt,
@@ -399,6 +406,7 @@ namespace TravelProject.Services
             Difficulty: r.Difficulty,
             DistanceKm: r.DistanceKm,
             AscentM: r.AscentM,
+            DescentM: r.DescentM,
             DurationH: r.DurationH,
             IsPublic: r.IsPublic,
             Tags: r.Tags,
