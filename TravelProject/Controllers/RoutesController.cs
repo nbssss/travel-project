@@ -107,9 +107,11 @@ namespace TravelProject.Controllers
 
         [HttpGet("recent")]
         [ProducesResponseType(typeof(IEnumerable<RouteListItemResponse>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> Recent()
+        public async Task<IActionResult> Recent([FromQuery] int page = 1, [FromQuery] int pageSize = 12)
         {
-            return Ok(await routes.GetRecentAsync(CurrentUserId));
+            pageSize = Math.Clamp(pageSize, 1, 50);
+            var skip = Math.Max(0, (page - 1) * pageSize);
+            return Ok(await routes.GetRecentAsync(CurrentUserId, skip, pageSize));
         }
 
         [HttpGet("liked")]

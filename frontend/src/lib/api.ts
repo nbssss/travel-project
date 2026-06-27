@@ -170,8 +170,8 @@ export const routesApi = {
     request<RouteDto>(`/routes/${id}/points`, { method: "PUT", body: JSON.stringify({ points, ...metrics }) }),
   mine: () =>
     request<RouteDto[]>("/routes/mine"),
-  recent: () =>
-    request<RouteDto[]>("/routes/recent"),
+  recent: (page = 1, pageSize = 12) =>
+    request<RouteDto[]>(`/routes/recent?page=${page}&pageSize=${pageSize}`),
   liked: () =>
     request<RouteDto[]>("/routes/liked"),
   bySlug: (slug: string) =>

@@ -160,11 +160,13 @@ namespace TravelProject.Services
                 userLiked.Contains(r.Id))).ToList();
         }
 
-        public async Task<IReadOnlyList<RouteListItemResponse>> GetRecentAsync(string? userId)
+        public async Task<IReadOnlyList<RouteListItemResponse>> GetRecentAsync(string? userId, int skip = 0, int take = 12)
         {
             var routes = await db.Routes
                 .Where(r => r.IsPublic && (userId == null || r.OwnerId != userId))
                 .OrderByDescending(r => r.CreatedAt)
+                .Skip(skip)
+                .Take(take)
                 .Include(r => r.Owner)
                 .Include(r => r.Points)
                 .ToListAsync();
