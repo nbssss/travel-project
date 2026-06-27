@@ -1,20 +1,16 @@
 using Microsoft.AspNetCore.Identity;
+using TravelProject.Models.Dtos;
 
 namespace TravelProject.Services
 {
     public class UserService(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
     {
-        public async Task<object?> GetProfileAsync(string userId)
+        public async Task<UserProfileResponse?> GetProfileAsync(string userId)
         {
             var user = await db.Users.FindAsync(userId);
             if (user is null) return null;
 
-            return new
-            {
-                id = user.Id,
-                userName = user.UserName,
-                email = user.Email,
-            };
+            return new UserProfileResponse(user.Id, user.UserName, user.Email);
         }
 
         public async Task<(bool Success, string? Error)> ChangeUsernameAsync(string userId, string newUserName)

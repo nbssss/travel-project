@@ -38,6 +38,11 @@ function haversineMeters(a: [number, number], b: [number, number]): number {
   return 2 * R * Math.asin(Math.sqrt(sa));
 }
 
+/** Dystans po wielkim kole w km (wrapper na haversineMeters). */
+export function haversineKm(a: [number, number], b: [number, number]): number {
+  return haversineMeters(a, b) / 1000;
+}
+
 /**
  * Sumuje podejścia i zejścia z serii wysokości, z histerezą progu (SMOOTH_M):
  * punkt odniesienia przesuwa się dopiero po przekroczeniu progu, dzięki czemu
@@ -149,62 +154,4 @@ export function elevationForPoi(
     if (sq < bestSq) { bestSq = sq; bestEle = profile[i].ele; }
   }
   return bestEle;
-}
-
-/**
- * Finds the nearest routable OSM way to the given coordinates.
- * The Overpass query is tailored to the active transport mode:
- *  - hiking: szlaki + wszystkie drogi
- *  - cycling: drogi dla samochodów + ścieżki rowerowe (highway + bicycle)
- *  - car: tylko drogi dla zmotoryzowanych
- */
-export async function snapToNearestWay(
-  lat: number,
-  lng: number,
-  transport: "hiking" | "cycling" | "car" = "hiking",
-  signal?: AbortSignal,
-  radiusM = 30, // szukamy i przyciągamy tylko w tym promieniu — "charakterystyczny punkt w pobliżu"
-): Promise<[number, number] | null> {
-  const R = radiusM;
-
-  let overpassFilter: string;
-  if (transport === "car") {
-    overpassFilter =
-      `way(around:${R},${lat},${lng})[highway~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|service|living_street)$"]`;
-  } else if (transport === "cycling") {
-    overpassFilter =
-      `(way(around:${R},${lat},${lng})[highway~"^(cycleway|primary|secondary|tertiary|unclassified|residential|service|living_street|track)$"];` +
-      `way(around:${R},${lat},${lng})[highway][bicycle~"^(yes|designated)$"];)`;
-  } else {
-    // hiking: any highway + marked hiking routes
-    overpassFilter =
-      `(way(around:${R},${lat},${lng})[highway];` +
-      `way(around:${R},${lat},${lng})[route="hiking"];)`;
-  }
-
-  const query = `[out:json][timeout:6];${overpassFilter};out geom;`;
-
-  try {
-    const res = await fetch(
-      `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`,
-      { signal },
-    );
-    if (!res.ok) return null;
-    const data = (await res.json()) as {
-      elements: Array<{ geometry?: Array<{ lat: number; lon: number }> }>;
-    };
-
-    let nearest: [number, number] | null = null;
-    let nearestM = Infinity;
-    for (const el of data.elements) {
-      for (const node of el.geometry ?? []) {
-        const d = haversineMeters([lat, lng], [node.lat, node.lon]);
-        if (d < nearestM) { nearestM = d; nearest = [node.lat, node.lon]; }
-      }
-    }
-    // Przyciągaj tylko, gdy najbliższy wierzchołek faktycznie jest w promieniu.
-    return nearestM <= radiusM ? nearest : null;
-  } catch {
-    return null;
-  }
 }

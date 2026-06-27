@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { poiKindLabel, type POI, type Route } from "@/data/mockRoutes";
 import { routesApi, ApiError, type RouteDetailDto } from "@/lib/api";
-import { snapToTrails, elevationForPoi, naismiithH, type RouteMetrics } from "@/lib/routing";
+import { snapToTrails, elevationForPoi, naismiithH, haversineKm, type RouteMetrics } from "@/lib/routing";
 import { z } from "zod";
 import type { LucideIcon } from "lucide-react";
 
@@ -37,16 +37,6 @@ const DIFFICULTIES = [
   { id: "moderate" as const, label: "Średnia" },
   { id: "hard"     as const, label: "Trudna"  },
 ] as const;
-
-// ── Haversine fallback (straight-line distance while BRouter loads) ───────────
-function haversineKm(a: [number, number], b: [number, number]) {
-  const R = 6371;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(b[0] - a[0]);
-  const dLng = toRad(b[1] - a[1]);
-  const sa = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(sa));
-}
 
 function punktLabel(n: number) {
   if (n === 1) return "punkt";

@@ -4,5 +4,11 @@ namespace TravelProject.Models.Dtos
 
     public record LoginUserRequest(string UserName, string Password);
 
+    public record RegisterResponse(string Id, string? Email);
+
+    public record LoginResponse(string AccessToken);
+
+    public record UserProfileResponse(string Id, string? UserName, string? Email);
+
     public record ChangeUsernameRequest(string NewUserName);
 }

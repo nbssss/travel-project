@@ -20,6 +20,5 @@ namespace TravelProject.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public List<RoutePoint> Points { get; set; } = [];
-        public List<RouteShare> Shares { get; set; } = [];
     }
 }

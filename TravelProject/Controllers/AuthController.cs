@@ -7,6 +7,8 @@ namespace TravelProject.Controllers
     public class AuthController(AuthService auth) : ApiControllerBase
     {
         [HttpPost("register")]
+        [ProducesResponseType(typeof(RegisterResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Register(RegisterUserRequest request)
         {
             var (result, user) = await auth.RegisterAsync(request);
@@ -16,10 +18,12 @@ namespace TravelProject.Controllers
                 return BadRequest(result.Errors);
             }
 
-            return Ok(new { user.Id, user.Email });
+            return Ok(new RegisterResponse(user.Id, user.Email));
         }
 
         [HttpPost("login")]
+        [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Login(LoginUserRequest request)
         {
             var accessToken = await auth.LoginAsync(request);
@@ -29,7 +33,7 @@ namespace TravelProject.Controllers
                 return Unauthorized();
             }
 
-            return Ok(new { accessToken });
+            return Ok(new LoginResponse(accessToken));
         }
     }
 }
