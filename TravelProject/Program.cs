@@ -81,6 +81,9 @@ namespace TravelProject
                 using var scope = app.Services.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 db.Database.Migrate();
+
+                // Do demo
+                Data.DemoDataSeeder.SeedAsync(scope.ServiceProvider).GetAwaiter().GetResult();
             }
 
             app.UseExceptionHandler();
