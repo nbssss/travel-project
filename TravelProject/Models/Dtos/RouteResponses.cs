@@ -7,6 +7,7 @@ namespace TravelProject.Models.Dtos
         string Difficulty,
         double DistanceKm,
         int AscentM,
+        int DescentM,
         double DurationH,
         bool IsPublic,
         DateTime UpdatedAt
@@ -20,6 +21,7 @@ namespace TravelProject.Models.Dtos
         string Difficulty,
         double DistanceKm,
         int AscentM,
+        int DescentM,
         double DurationH,
         bool IsPublic,
         DateTime UpdatedAt,
@@ -50,6 +52,7 @@ namespace TravelProject.Models.Dtos
         string Difficulty,
         double DistanceKm,
         int AscentM,
+        int DescentM,
         double DurationH,
         bool IsPublic,
         List<string> Tags,
