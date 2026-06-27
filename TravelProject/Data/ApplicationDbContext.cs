@@ -10,7 +10,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> dbConte
 {
     public DbSet<Route> Routes => Set<Route>();
     public DbSet<RoutePoint> RoutePoints => Set<RoutePoint>();
-    public DbSet<RouteShare> RouteShares => Set<RouteShare>();
     public DbSet<RouteLike> RouteLikes => Set<RouteLike>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -51,20 +50,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> dbConte
              .WithMany(r => r.Points)
              .HasForeignKey(p => p.RouteId)
              .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        builder.Entity<RouteShare>(e =>
-        {
-            e.ToTable("RouteShares", schema: "public");
-            e.HasIndex(s => new { s.RouteId, s.SharedWithUserId }).IsUnique();
-            e.HasOne(s => s.Route)
-             .WithMany(r => r.Shares)
-             .HasForeignKey(s => s.RouteId)
-             .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(s => s.SharedWithUser)
-             .WithMany()
-             .HasForeignKey(s => s.SharedWithUserId)
-             .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<RouteLike>(e =>
