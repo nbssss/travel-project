@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using TravelProject.Infrastructure;
 using TravelProject.Services;
 
 namespace TravelProject
@@ -15,9 +16,8 @@ namespace TravelProject
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddControllers();
-            // Zachowanie jak w minimal API: brakujące pola w body nie dają automatycznego 400,
-            // logika endpointu sama decyduje o odpowiedzi (np. /login → 401).
+            builder.Services.AddControllers(options =>
+                options.Filters.Add<ValidationActionFilter>());
             builder.Services.Configure<ApiBehaviorOptions>(options =>
                 options.SuppressModelStateInvalidFilter = true);
             builder.Services.AddEndpointsApiExplorer();
