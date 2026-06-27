@@ -3,6 +3,16 @@ import { clearToken, getToken, setToken } from "@/lib/api";
 
 const USER_KEY = "tr_username";
 
+// Czy JWT wygasł (lub jest nieparsowalny)? Sprawdzamy claim `exp` (sekundy epoki).
+function isExpired(t: string): boolean {
+  try {
+    const payload = JSON.parse(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return typeof payload.exp !== "number" || payload.exp * 1000 <= Date.now();
+  } catch {
+    return true;
+  }
+}
+
 interface AuthContextValue {
   token: string | null;
   userName: string | null;
@@ -14,13 +24,24 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setTokenState] = useState<string | null>(() => getToken());
+  const [token, setTokenState] = useState<string | null>(() => {
+    const t = getToken();
+    // Wygasła/stara sesja (np. po przerwie albo `docker compose up --build`) —
+    // nie udawaj zalogowania; wyczyść, żeby UI od razu pokazał ekran logowania.
+    if (t && isExpired(t)) {
+      clearToken();
+      localStorage.removeItem(USER_KEY);
+      return null;
+    }
+    return t;
+  });
   const [userName, setUserNameState] = useState<string | null>(() => {
+    // token-initializer powyżej wyczyścił już wygasłą sesję — nazwę bierzemy tylko gdy token żyje
+    const t = getToken();
+    if (!t) return null;
     const stored = localStorage.getItem(USER_KEY);
     if (stored) return stored;
     // Fallback: decode JWT to get 'name' claim (handles pre-existing sessions)
-    const t = getToken();
-    if (!t) return null;
     try {
       const payload = JSON.parse(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
       return payload["name"] ?? payload["email"] ?? null;

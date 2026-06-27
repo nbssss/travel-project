@@ -70,7 +70,6 @@ namespace TravelProject
             builder.Services.AddScoped<AuthService>();
             builder.Services.AddScoped<RouteService>();
             builder.Services.AddScoped<UserService>();
-            builder.Services.AddScoped<StatsService>();
 
             var app = builder.Build();
 

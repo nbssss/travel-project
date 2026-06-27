@@ -24,6 +24,11 @@ async function extractError(res: Response): Promise<string> {
         .join(" ");
     }
     if (typeof data === "string") return data;
+    // ValidationProblemDetails (FluentValidation) → { errors: { pole: [komunikaty] } }
+    if (data?.errors && typeof data.errors === "object") {
+      const msgs = Object.values(data.errors as Record<string, string[]>).flat();
+      if (msgs.length) return msgs.join(" ");
+    }
     if (data?.detail) return data.detail;
     if (data?.title) return data.title;
   } catch {
@@ -46,6 +51,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   });
 
+  // Token wygasł/nieważny w trakcie sesji — tylko gdy faktycznie go wysłaliśmy (uwierzytelnione
+  // żądanie), więc 401 z samego logowania tego nie wyzwala. Czyścimy sesję i odsyłamy na /login,
+  // zamiast zostawiać użytkownika w stanie „niby zalogowany, ale każdy zapis = 401".
+  if (res.status === 401 && token) {
+    clearToken();
+    localStorage.removeItem("tr_username");
+    if (!window.location.pathname.startsWith("/login")) window.location.assign("/login");
+  }
+
   if (!res.ok) throw new ApiError(res.status, await extractError(res));
 
   const text = await res.text();
@@ -55,10 +69,6 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export interface LoginResponse {
   accessToken: string;
 }
-
-export const statsApi = {
-  get: () => request<{ userCount: number }>("/stats"),
-};
 
 export interface UserProfile {
   id: string;

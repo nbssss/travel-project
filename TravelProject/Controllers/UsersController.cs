@@ -23,11 +23,14 @@ namespace TravelProject.Controllers
 
         [HttpPut("me/username")]
         [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameRequest req)
         {
+            // Walidacja długości/pustości robi globalny ValidationActionFilter
+            // (ChangeUsernameRequestValidator). Tu zostaje tylko logika biznesowa.
             if (CurrentUserId is null) return Unauthorized();
-            if (string.IsNullOrWhiteSpace(req.NewUserName) || req.NewUserName.Length < 3)
-                return BadRequest("Nazwa użytkownika musi mieć co najmniej 3 znaki.");
 
             var (success, error) = await users.ChangeUsernameAsync(CurrentUserId, req.NewUserName.Trim());
             return success ? Ok() : BadRequest(error);
@@ -35,6 +38,9 @@ namespace TravelProject.Controllers
 
         [HttpDelete("me")]
         [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteAccount()
         {
             if (CurrentUserId is null) return Unauthorized();

@@ -118,6 +118,7 @@ namespace TravelProject.Services
         public async Task<RouteDetailResponse?> GetBySlugAsync(string? userId, string slug)
         {
             var route = await db.Routes
+                .AsNoTracking()
                 .Include(r => r.Owner)
                 .Include(r => r.Points.OrderBy(p => p.Order))
                 .FirstOrDefaultAsync(r => r.Slug == slug);
@@ -134,6 +135,7 @@ namespace TravelProject.Services
         public async Task<IReadOnlyList<RouteListItemResponse>> GetMineAsync(string userId, string? ownerUserName)
         {
             var routes = await db.Routes
+                .AsNoTracking()
                 .Where(r => r.OwnerId == userId)
                 .OrderByDescending(r => r.UpdatedAt)
                 .Include(r => r.Points)
@@ -163,6 +165,7 @@ namespace TravelProject.Services
         public async Task<IReadOnlyList<RouteListItemResponse>> GetRecentAsync(string? userId, int skip = 0, int take = 12)
         {
             var routes = await db.Routes
+                .AsNoTracking()
                 .Where(r => r.IsPublic && (userId == null || r.OwnerId != userId))
                 .OrderByDescending(r => r.CreatedAt)
                 .Skip(skip)
@@ -197,6 +200,7 @@ namespace TravelProject.Services
         public async Task<IReadOnlyList<RouteListItemResponse>> GetLikedAsync(string userId)
         {
             var routes = await db.RouteLikes
+                .AsNoTracking()
                 .Where(l => l.UserId == userId)
                 .OrderByDescending(l => l.CreatedAt)
                 .Include(l => l.Route)
