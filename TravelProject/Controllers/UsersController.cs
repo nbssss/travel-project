@@ -28,8 +28,6 @@ namespace TravelProject.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameRequest req)
         {
-            // Walidacja długości/pustości robi globalny ValidationActionFilter
-            // (ChangeUsernameRequestValidator). Tu zostaje tylko logika biznesowa.
             if (CurrentUserId is null) return Unauthorized();
 
             var (success, error) = await users.ChangeUsernameAsync(CurrentUserId, req.NewUserName.Trim());

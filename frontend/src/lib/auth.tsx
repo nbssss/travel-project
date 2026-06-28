@@ -3,7 +3,6 @@ import { clearToken, getToken, setToken } from "@/lib/api";
 
 const USER_KEY = "tr_username";
 
-// Czy JWT wygasł (lub jest nieparsowalny)? Sprawdzamy claim `exp` (sekundy epoki).
 function isExpired(t: string): boolean {
   try {
     const payload = JSON.parse(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
@@ -41,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!t) return null;
     const stored = localStorage.getItem(USER_KEY);
     if (stored) return stored;
-    // Fallback: decode JWT to get 'name' claim (handles pre-existing sessions)
+
     try {
       const payload = JSON.parse(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
       return payload["name"] ?? payload["email"] ?? null;

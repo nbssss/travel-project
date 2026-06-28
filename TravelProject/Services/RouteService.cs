@@ -43,7 +43,6 @@ namespace TravelProject.Services
             if (route is null) return new RouteResult(RouteOp.NotFound);
             if (route.OwnerId != userId) return new RouteResult(RouteOp.Forbidden);
 
-            // slug pozostaje bez zmian — to klucz w URL-ach frontendu
             route.Title = req.Title;
             route.Description = req.Description;
             route.Region = req.Region;
