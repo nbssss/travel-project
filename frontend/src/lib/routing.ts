@@ -62,13 +62,6 @@ function accumulateAscentDescent(eles: number[]): { ascentM: number; descentM: n
   return { ascentM: Math.round(ascent), descentM: Math.round(descent) };
 }
 
-/**
- * Routes between waypoints using BRouter with the given profile.
- * Returns full trail geometry + real metrics (distance, ascent, descent,
- * duration) and an elevation profile series. BRouter zwraca wysokość per
- * wierzchołek jako 3-ci element coords — to źródło prawdy dla profilu i przewyższeń.
- * Returns null on error — callers should fall back to straight lines.
- */
 export async function snapToTrails(
   waypoints: [number, number][],
   profile: string,

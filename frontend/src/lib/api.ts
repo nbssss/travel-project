@@ -24,7 +24,7 @@ async function extractError(res: Response): Promise<string> {
         .join(" ");
     }
     if (typeof data === "string") return data;
-    // ValidationProblemDetails (FluentValidation) → { errors: { pole: [komunikaty] } }
+
     if (data?.errors && typeof data.errors === "object") {
       const msgs = Object.values(data.errors as Record<string, string[]>).flat();
       if (msgs.length) return msgs.join(" ");
@@ -40,7 +40,6 @@ async function extractError(res: Response): Promise<string> {
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
-  // Nie ustawiaj Content-Type dla FormData — przeglądarka sama wstawi multipart/form-data z boundary
   const isFormData = options.body instanceof FormData;
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -51,9 +50,6 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   });
 
-  // Token wygasł/nieważny w trakcie sesji — tylko gdy faktycznie go wysłaliśmy (uwierzytelnione
-  // żądanie), więc 401 z samego logowania tego nie wyzwala. Czyścimy sesję i odsyłamy na /login,
-  // zamiast zostawiać użytkownika w stanie „niby zalogowany, ale każdy zapis = 401".
   if (res.status === 401 && token) {
     clearToken();
     localStorage.removeItem("tr_username");
