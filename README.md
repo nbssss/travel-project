@@ -57,10 +57,10 @@ po gotowości API). Schemat bazy zakłada się sam przy starcie (migracje EF Cor
 
 | Usługa | Adres |
 |---|---|
-| Frontend | http://127.0.0.1:5173 |
-| Backend API | http://127.0.0.1:8081 |
-| Swagger | http://127.0.0.1:8081/swagger |
-| Health-check | http://127.0.0.1:8081/health |
+| Frontend | http://localhost:5173 |
+| Backend API | http://localhost:8081 |
+| Swagger | http://localhost:8081/swagger |
+| Health-check | http://localhost:8081/health |
 
 ### Zatrzymanie
 
