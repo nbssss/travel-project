@@ -38,7 +38,7 @@ const ROAD_HW       = /^(motorway|trunk|primary|secondary|tertiary|unclassified|
 
 /**
  * Najbliższy węzeł szlaku/drogi w promieniu maxM — z JUŻ wczytanego cache OSM
- * (osmWaysRef), bez zapytania sieciowego. Dla "car" tylko drogi jezdne.
+ * (osmWaysRef), bez zapytania sieciowego.
  */
 function nearestWayNode(
     ways: OsmWay[],
